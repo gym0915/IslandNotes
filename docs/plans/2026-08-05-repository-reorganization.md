@@ -58,7 +58,7 @@
 1. Change the five synchronized Xcode group paths to their new `Sources/` and `Tests/` locations.
 2. Rewrite Markdown links to their new relative targets.
 3. Rewrite prototype commands to start from their new directory.
-4. Remove stale absolute paths into `/Users/steve/project/app 灵动岛提醒`.
+4. Remove stale absolute paths into `<old-repository-root>`.
 5. Run a local Markdown link checker and correct every missing local target.
 
 ### Task 4: Verify the reorganized repository

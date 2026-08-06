@@ -8,27 +8,43 @@ struct CharacterProgressView: View {
 
     var body: some View {
         Button(action: reveal) {
-            HStack(spacing: 8) {
+            HStack(spacing: IslandDesign.Spacing.x2) {
                 ZStack {
                     Circle()
-                        .stroke(.secondary.opacity(0.18), lineWidth: 4)
+                        .stroke(
+                            IslandDesign.Colors.progressTrack,
+                            lineWidth: IslandDesign.Sizing.progressStroke
+                        )
                     Circle()
                         .trim(from: 0, to: CGFloat(progress.used) / 240)
                         .stroke(
-                            didReachLimit ? Color.orange : Color.primary,
-                            style: StrokeStyle(lineWidth: 4, lineCap: .round)
+                            didReachLimit
+                                ? IslandDesign.Colors.limit
+                                : IslandDesign.Colors.primaryText,
+                            style: StrokeStyle(
+                                lineWidth: IslandDesign.Sizing.progressStroke,
+                                lineCap: .round
+                            )
                         )
                         .rotationEffect(.degrees(-90))
                 }
-                .frame(width: 34, height: 34)
+                .frame(
+                    width: IslandDesign.Sizing.characterRing,
+                    height: IslandDesign.Sizing.characterRing
+                )
 
                 if isExpanded {
                     Text("\(progress.used) used · \(progress.remaining) remaining")
-                        .font(.caption.weight(.semibold))
-                        .foregroundStyle(.secondary)
+                        .font(IslandDesign.Typography.caption)
+                        .foregroundStyle(IslandDesign.Colors.secondaryText)
                         .transition(.opacity)
                 }
             }
+            .frame(
+                minWidth: IslandDesign.Sizing.minimumTouchTarget,
+                minHeight: IslandDesign.Sizing.minimumTouchTarget,
+                alignment: .trailing
+            )
             .contentShape(Rectangle())
         }
         .buttonStyle(.plain)

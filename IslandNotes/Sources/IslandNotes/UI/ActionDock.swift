@@ -5,8 +5,8 @@ struct ActionDock: View {
 
     var body: some View {
         ViewThatFits(in: .horizontal) {
-            HStack(spacing: 10) { actionButtons }
-            VStack(spacing: 10) { actionButtons }
+            HStack(spacing: IslandDesign.Spacing.x2) { actionButtons }
+            VStack(spacing: IslandDesign.Spacing.x2) { actionButtons }
         }
     }
 
@@ -63,11 +63,11 @@ private struct ActionButton: View {
     var body: some View {
         Button(role: role, action: action) {
             HStack(spacing: IslandDesign.Spacing.x2) {
-                AppIconView(icon: icon, size: 18)
+                AppIconView(icon: icon, size: IslandDesign.Sizing.smallIcon)
                 Text(title)
             }
                 .font(IslandDesign.Typography.action)
-                .frame(maxWidth: .infinity, minHeight: 48)
+                .frame(maxWidth: .infinity, minHeight: IslandDesign.Sizing.actionHeight)
         }
         .buttonStyle(.bordered)
         .tint(isProminent ? IslandDesign.Colors.live : nil)

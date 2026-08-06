@@ -10,6 +10,26 @@ private final class PreviewLiveActivityController: LiveActivityControlling {
     func end(activityID: String) async throws {}
 }
 
+private struct AppSheetPreviewHost<Content: View>: View {
+    @State private var isPresented = true
+    @ViewBuilder let content: Content
+
+    var body: some View {
+        ZStack(alignment: .topLeading) {
+            IslandDesign.Colors.canvas
+                .ignoresSafeArea()
+            Text("Island Notes")
+                .font(IslandDesign.Typography.productName)
+                .foregroundStyle(IslandDesign.Colors.primaryText)
+                .padding(IslandDesign.Spacing.x6)
+        }
+        .sheet(isPresented: $isPresented) {
+            content
+                .islandSheetPresentationStyle()
+        }
+    }
+}
+
 @MainActor
 private enum PreviewFixtures {
     static func workbench(
@@ -43,15 +63,19 @@ private enum PreviewFixtures {
 
     static func library(libraryBodies: [String]) -> some View {
         let fixture = makeFeature(body: "", libraryBodies: libraryBodies)
-        return AppSheetContainer(title: "Note Library", close: {}) {
-            NoteLibraryView(feature: fixture.feature)
+        return AppSheetPreviewHost {
+            AppSheetContainer(title: "Note Library", close: {}) {
+                NoteLibraryView(feature: fixture.feature)
+            }
         }
         .modelContainer(fixture.container)
     }
 
     static func settings() -> some View {
-        AppSheetContainer(title: "Settings", close: {}) {
-            SettingsView()
+        AppSheetPreviewHost {
+            AppSheetContainer(title: "Settings", close: {}) {
+                SettingsView()
+            }
         }
     }
 
@@ -143,6 +167,18 @@ private enum PreviewFixtures {
         libraryBodies: ["Call home before boarding", "Review the launch notes"]
     )
     .preferredColorScheme(.light)
+}
+
+#Preview("Note Library Sheet · Dark") {
+    PreviewFixtures.library(
+        libraryBodies: ["Call home before boarding", "Review the launch notes"]
+    )
+    .preferredColorScheme(.dark)
+}
+
+#Preview("Settings Sheet · Light") {
+    PreviewFixtures.settings()
+        .preferredColorScheme(.light)
 }
 
 #Preview("Settings Sheet · Dark") {

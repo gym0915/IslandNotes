@@ -53,10 +53,7 @@ struct AppRootView: View {
             onDismiss: router.dismissSheet
         ) { destination in
             sheet(for: destination)
-                .presentationDetents([.large])
-                .presentationDragIndicator(.visible)
-                .presentationCornerRadius(IslandDesign.Radius.sheet)
-                .presentationBackground(IslandDesign.Colors.canvas)
+                .islandSheetPresentationStyle()
         }
     }
 

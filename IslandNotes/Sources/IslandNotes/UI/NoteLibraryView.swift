@@ -8,7 +8,7 @@ struct NoteLibraryView: View {
         Group {
             if feature.library.isEmpty {
                 VStack(spacing: IslandDesign.Spacing.x4) {
-                    AppIconView(icon: .noteLibrary, size: 28)
+                    AppIconView(icon: .noteLibrary, size: IslandDesign.Sizing.largeIcon)
                         .foregroundStyle(IslandDesign.Colors.secondaryText)
                     Text("No notes yet")
                         .font(IslandDesign.Typography.sheetTitle)
@@ -27,20 +27,20 @@ struct NoteLibraryView: View {
                             if feature.currentNote?.id == note.id { dismiss() }
                         }
                     } label: {
-                        VStack(alignment: .leading, spacing: 8) {
+                        VStack(alignment: .leading, spacing: IslandDesign.Spacing.x2) {
                             Text(note.body)
-                                .font(.body)
-                                .foregroundStyle(.primary)
+                                .font(IslandDesign.Typography.body)
+                                .foregroundStyle(IslandDesign.Colors.primaryText)
                                 .multilineTextAlignment(.leading)
                                 .lineLimit(3)
                             if let archivedAt = note.archivedAt {
                                 Text(archivedAt, format: .dateTime.month().day().hour().minute())
-                                    .font(.caption)
-                                    .foregroundStyle(.secondary)
+                                    .font(IslandDesign.Typography.caption)
+                                    .foregroundStyle(IslandDesign.Colors.secondaryText)
                             }
                         }
                         .frame(maxWidth: .infinity, alignment: .leading)
-                        .padding(.vertical, 8)
+                        .padding(.vertical, IslandDesign.Spacing.x2)
                     }
                     .buttonStyle(.plain)
                     .accessibilityIdentifier("library-note-\(note.id.uuidString)")

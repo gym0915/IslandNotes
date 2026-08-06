@@ -16,7 +16,7 @@ struct WorkbenchView: View {
                     editorPaper
                     if let feedback = feature.feedbackMessage {
                         Text(feedback)
-                            .font(.footnote.weight(.semibold))
+                            .font(IslandDesign.Typography.feedback)
                             .foregroundStyle(IslandDesign.Colors.secondaryText)
                             .accessibilityIdentifier("transient-feedback")
                     }
@@ -46,9 +46,16 @@ struct WorkbenchView: View {
                         openSettings()
                     }
                 )
-                .padding(.top, 64)
+                .padding(.top, IslandDesign.Sizing.menuTopOffset)
                 .padding(.trailing, IslandDesign.Spacing.x6)
-                .transition(.opacity.combined(with: .scale(scale: 0.96, anchor: .topTrailing)))
+                .transition(
+                    .opacity.combined(
+                        with: .scale(
+                            scale: IslandDesign.Motion.menuScale,
+                            anchor: .topTrailing
+                        )
+                    )
+                )
                 .zIndex(1)
             }
         }
@@ -84,12 +91,17 @@ struct WorkbenchView: View {
                         .fill(
                             feature.pinState == .pinned
                                 ? IslandDesign.Colors.live
-                                : IslandDesign.Colors.secondaryText.opacity(0.35)
+                                : IslandDesign.Colors.notLive
                         )
-                        .frame(width: 7, height: 7)
+                        .frame(
+                            width: IslandDesign.Sizing.statusDot,
+                            height: IslandDesign.Sizing.statusDot
+                        )
                         .scaleEffect(
                             feature.pinState == .pinned
-                                && !(reduceMotionOverride ?? reduceMotion) ? 1.08 : 1
+                                && !(reduceMotionOverride ?? reduceMotion)
+                                ? IslandDesign.Motion.livePulseScale
+                                : 1
                         )
                     Text(feature.pinState == .pinned ? "Live" : "Not Live")
                         .font(IslandDesign.Typography.caption)
@@ -124,8 +136,8 @@ struct WorkbenchView: View {
             ZStack(alignment: .topLeading) {
                 if feature.editingText.isEmpty {
                     Text("Write what matters most…")
-                        .font(.title2)
-                        .foregroundStyle(.tertiary)
+                        .font(IslandDesign.Typography.editor)
+                        .foregroundStyle(IslandDesign.Colors.placeholder)
                         .padding(.top, IslandDesign.Spacing.x1)
                         .allowsHitTesting(false)
                 }
@@ -139,7 +151,7 @@ struct WorkbenchView: View {
                         try? feature.persistStagedEditorText(staged.acceptedText)
                     }
                 }
-                .frame(minHeight: 310)
+                .frame(minHeight: IslandDesign.Sizing.editorMinimumHeight)
             }
 
             CharacterProgressView(
@@ -154,7 +166,10 @@ struct WorkbenchView: View {
         .clipShape(RoundedRectangle(cornerRadius: IslandDesign.Radius.sheet, style: .continuous))
         .overlay {
             RoundedRectangle(cornerRadius: IslandDesign.Radius.sheet, style: .continuous)
-                .stroke(IslandDesign.Colors.separator.opacity(0.5), lineWidth: 1)
+                .stroke(
+                    IslandDesign.Colors.surfaceBorder,
+                    lineWidth: IslandDesign.Sizing.hairline
+                )
         }
         .shadow(
             color: IslandDesign.Elevation.card.color,

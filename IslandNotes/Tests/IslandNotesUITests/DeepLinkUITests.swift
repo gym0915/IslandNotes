@@ -46,6 +46,8 @@ final class DeepLinkUITests: XCTestCase {
         XCTAssertEqual(app.textViews["current-note-editor"].label, "Current note")
         XCTAssertEqual(app.buttons["open-more-menu"].label, "More")
         XCTAssertEqual(app.buttons["character-progress"].label, "Character count")
+        XCTAssertGreaterThanOrEqual(app.buttons["character-progress"].frame.width, 44)
+        XCTAssertGreaterThanOrEqual(app.buttons["character-progress"].frame.height, 44)
     }
 
     func testSimulatorActivityKitStartUpdateAndEndChain() {

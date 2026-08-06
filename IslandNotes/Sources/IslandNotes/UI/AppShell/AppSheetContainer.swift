@@ -16,7 +16,7 @@ struct AppSheetContainer<Content: View>: View {
                 HStack {
                     Spacer()
                     Button(action: close) {
-                        AppIconView(icon: .close, size: 18)
+                        AppIconView(icon: .close, size: IslandDesign.Sizing.smallIcon)
                             .frame(
                                 width: IslandDesign.Sizing.minimumTouchTarget,
                                 height: IslandDesign.Sizing.minimumTouchTarget
@@ -37,5 +37,14 @@ struct AppSheetContainer<Content: View>: View {
         .background(IslandDesign.Colors.canvas)
         .accessibilityElement(children: .contain)
         .accessibilityIdentifier("app-sheet")
+    }
+}
+
+extension View {
+    func islandSheetPresentationStyle() -> some View {
+        presentationDetents([.large])
+            .presentationDragIndicator(.visible)
+            .presentationCornerRadius(IslandDesign.Radius.sheet)
+            .presentationBackground(IslandDesign.Colors.canvas)
     }
 }

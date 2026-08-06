@@ -27,9 +27,30 @@ enum IslandDesign {
             adaptive(light: 0xE7E7E2, dark: 0x30302E)
         }
 
+        static var placeholder: Color {
+            secondaryText.opacity(0.55)
+        }
+
+        static var progressTrack: Color {
+            secondaryText.opacity(0.18)
+        }
+
+        static var surfaceBorder: Color {
+            separator.opacity(0.5)
+        }
+
+        static var menuBorder: Color {
+            separator.opacity(0.8)
+        }
+
+        static var notLive: Color {
+            secondaryText.opacity(0.35)
+        }
+
         static let scrim = Color.black.opacity(0.32)
         static let live = Color(red: 0.27, green: 0.58, blue: 0.31)
         static let destructive = Color(red: 0.84, green: 0.22, blue: 0.17)
+        static let limit = Color(red: 0.91, green: 0.48, blue: 0.12)
 
         private static func adaptive(light: UInt32, dark: UInt32) -> Color {
             Color(
@@ -47,6 +68,8 @@ enum IslandDesign {
         static let body = Font.system(.body, design: .default, weight: .regular)
         static let caption = Font.system(.caption, design: .default, weight: .semibold)
         static let action = Font.system(.subheadline, design: .default, weight: .semibold)
+        static let feedback = Font.system(.footnote, design: .default, weight: .semibold)
+        static let editor = Font.system(.title2, design: .default, weight: .regular)
     }
 
     enum Spacing {
@@ -84,13 +107,24 @@ enum IslandDesign {
     enum Sizing {
         static let minimumTouchTarget: CGFloat = 44
         static let icon: CGFloat = 20
+        static let smallIcon: CGFloat = 18
+        static let largeIcon: CGFloat = 28
         static let menuWidth: CGFloat = 216
+        static let menuTopOffset: CGFloat = 64
+        static let statusDot: CGFloat = 7
+        static let characterRing: CGFloat = 34
+        static let editorMinimumHeight: CGFloat = 310
+        static let actionHeight: CGFloat = 48
+        static let hairline: CGFloat = 1
+        static let progressStroke: CGFloat = 4
     }
 
     enum Motion {
         static let quick: Double = 0.16
         static let standard: Double = 0.18
         static let deliberate: Double = 0.21
+        static let menuScale: CGFloat = 0.96
+        static let livePulseScale: CGFloat = 1.08
 
         static func menu(reduceMotion: Bool) -> Animation? {
             reduceMotion ? nil : .easeOut(duration: standard)

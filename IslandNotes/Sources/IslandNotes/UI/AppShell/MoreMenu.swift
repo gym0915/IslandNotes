@@ -38,7 +38,10 @@ struct MoreMenu: View {
                 cornerRadius: IslandDesign.Radius.compact,
                 style: .continuous
             )
-            .stroke(IslandDesign.Colors.separator.opacity(0.8), lineWidth: 1)
+            .stroke(
+                IslandDesign.Colors.menuBorder,
+                lineWidth: IslandDesign.Sizing.hairline
+            )
         }
         .shadow(
             color: IslandDesign.Elevation.menu.color,

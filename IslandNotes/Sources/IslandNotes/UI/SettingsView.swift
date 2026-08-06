@@ -3,7 +3,7 @@ import SwiftUI
 struct SettingsView: View {
     var body: some View {
         VStack(spacing: IslandDesign.Spacing.x4) {
-            AppIconView(icon: .settings, size: 28)
+            AppIconView(icon: .settings, size: IslandDesign.Sizing.largeIcon)
                 .foregroundStyle(IslandDesign.Colors.secondaryText)
             Text("Appearance settings are coming in a later update.")
                 .font(IslandDesign.Typography.body)

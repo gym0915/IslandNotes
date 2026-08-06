@@ -7,17 +7,20 @@ final class FeatureHarness {
     let container: ModelContainer
     let context: ModelContext
     let controller: FakeLiveActivityController
+    let workspace: NoteWorkspace
     let feature: IslandNotesFeature
 
     private init(
         container: ModelContainer,
         context: ModelContext,
         controller: FakeLiveActivityController,
+        workspace: NoteWorkspace,
         feature: IslandNotesFeature
     ) {
         self.container = container
         self.context = context
         self.controller = controller
+        self.workspace = workspace
         self.feature = feature
     }
 
@@ -34,15 +37,16 @@ final class FeatureHarness {
         )
         let context = ModelContext(container)
         let controller = FakeLiveActivityController()
+        let workspace = NoteWorkspace(modelContext: context, now: clock)
         let feature = IslandNotesFeature(
-            modelContext: context,
-            liveActivityController: controller,
-            now: clock
+            workspace: workspace,
+            liveActivityController: controller
         )
         return FeatureHarness(
             container: container,
             context: context,
             controller: controller,
+            workspace: workspace,
             feature: feature
         )
     }
@@ -62,15 +66,19 @@ final class FeatureHarness {
         )
         let context = ModelContext(container)
         let controller = FakeLiveActivityController()
-        let feature = IslandNotesFeature(
+        let workspace = NoteWorkspace(
             modelContext: context,
-            liveActivityController: controller,
             now: { Date(timeIntervalSince1970: 9_000) }
+        )
+        let feature = IslandNotesFeature(
+            workspace: workspace,
+            liveActivityController: controller
         )
         return FeatureHarness(
             container: container,
             context: context,
             controller: controller,
+            workspace: workspace,
             feature: feature
         )
     }

@@ -2,24 +2,6 @@ import Foundation
 import Observation
 import SwiftData
 
-struct NoteSnapshot: Equatable, Identifiable, Sendable {
-    let id: UUID
-    let body: String
-    let contentVersion: Int
-    let createdAt: Date
-    let modifiedAt: Date
-    let archivedAt: Date?
-
-    init(record: NoteRecord) {
-        id = record.id
-        body = record.body
-        contentVersion = record.contentVersion
-        createdAt = record.createdAt
-        modifiedAt = record.modifiedAt
-        archivedAt = record.archivedAt
-    }
-}
-
 enum PinState: Equatable, Sendable {
     case unpinned
     case pinned
@@ -38,14 +20,13 @@ private struct PendingActivityUpdate: Equatable, Sendable {
 @MainActor
 @Observable
 final class IslandNotesFeature {
-    private let modelContext: ModelContext
+    private let workspace: NoteWorkspace
     private let liveActivityController: LiveActivityControlling
-    private let now: () -> Date
     @ObservationIgnored private var pendingActivityUpdate: PendingActivityUpdate?
     @ObservationIgnored private var activityUpdateTask: Task<Void, Never>?
 
-    private(set) var currentNote: NoteSnapshot?
-    private(set) var library: [NoteSnapshot] = []
+    var currentNote: NoteSnapshot? { workspace.currentNote }
+    var library: [NoteSnapshot] { workspace.library }
     private(set) var pinState: PinState = .unpinned
     private(set) var editingText = ""
     private(set) var didReachCharacterLimit = false
@@ -62,39 +43,33 @@ final class IslandNotesFeature {
         )
     }
 
-    var canArchive: Bool { currentNote.map { hasActionableContent($0.body) } == true }
-    var canPin: Bool { currentNote.map { hasActionableContent($0.body) } == true }
-    var canDelete: Bool { currentNote.map { hasActionableContent($0.body) } == true }
+    var canArchive: Bool { currentNote.map { NoteContent.isActionable($0.body) } == true }
+    var canPin: Bool { currentNote.map { NoteContent.isActionable($0.body) } == true }
+    var canDelete: Bool { currentNote.map { NoteContent.isActionable($0.body) } == true }
     let canOpenLibrary = true
 
     init(
+        workspace: NoteWorkspace,
+        liveActivityController: LiveActivityControlling
+    ) {
+        self.workspace = workspace
+        self.liveActivityController = liveActivityController
+    }
+
+    convenience init(
         modelContext: ModelContext,
         liveActivityController: LiveActivityControlling,
         now: @escaping () -> Date = Date.init
     ) {
-        self.modelContext = modelContext
-        self.liveActivityController = liveActivityController
-        self.now = now
+        self.init(
+            workspace: NoteWorkspace(modelContext: modelContext, now: now),
+            liveActivityController: liveActivityController
+        )
     }
 
     func bootstrap() async throws {
-        let workbenches = try modelContext.fetch(FetchDescriptor<WorkbenchRecord>())
-        let notes = try modelContext.fetch(FetchDescriptor<NoteRecord>())
-
-        if let workbench = workbenches.first,
-           notes.contains(where: { $0.id == workbench.currentNoteID }) {
-            refreshSnapshots(notes: notes, currentNoteID: workbench.currentNoteID)
-            await reconcileActivities()
-            return
-        }
-
-        let timestamp = now()
-        let note = NoteRecord(createdAt: timestamp, modifiedAt: timestamp)
-        let workbench = WorkbenchRecord(currentNoteID: note.id)
-        modelContext.insert(note)
-        modelContext.insert(workbench)
-        try modelContext.save()
-        refreshSnapshots(notes: [note], currentNoteID: note.id)
+        try workspace.bootstrap()
+        editingText = currentNote?.body ?? ""
         await reconcileActivities()
     }
 
@@ -125,30 +100,20 @@ final class IslandNotesFeature {
     }
 
     func persistStagedEditorText(_ stagedText: String) throws {
-        guard editingText == stagedText,
-              let currentNote else { return }
-
-        let notes = try modelContext.fetch(FetchDescriptor<NoteRecord>())
-        guard let record = notes.first(where: { $0.id == currentNote.id }) else { return }
-
-        record.body = stagedText
-        record.contentVersion += 1
-        record.modifiedAt = now()
+        guard editingText == stagedText else { return }
         do {
-            try modelContext.save()
+            guard try workspace.commitCurrentNote(stagedText) else { return }
             feedbackMessage = nil
         } catch {
-            modelContext.rollback()
             feedbackMessage = "内容尚未保存"
             throw error
         }
-        refreshSnapshots(notes: notes, currentNoteID: record.id)
-        if pinState == .pinned {
+        if pinState == .pinned, let currentNote {
             enqueueActivityUpdate(
                 PendingActivityUpdate(
-                    noteID: record.id,
-                    body: record.body,
-                    version: record.contentVersion
+                    noteID: currentNote.id,
+                    body: currentNote.body,
+                    version: currentNote.contentVersion
                 )
             )
         }
@@ -166,29 +131,14 @@ final class IslandNotesFeature {
         guard canArchive, let currentNote else { return }
         guard await endCurrentActivityBarrier(noteID: currentNote.id) else { return }
 
-        let notes = try modelContext.fetch(FetchDescriptor<NoteRecord>())
-        let workbenches = try modelContext.fetch(FetchDescriptor<WorkbenchRecord>())
-        guard let record = notes.first(where: { $0.id == currentNote.id }),
-              let workbench = workbenches.first else { return }
-
-        let timestamp = now()
-        let blank = NoteRecord(createdAt: timestamp, modifiedAt: timestamp)
-        record.archivedAt = timestamp
-        workbench.currentNoteID = blank.id
-        modelContext.insert(blank)
-
         do {
-            try modelContext.save()
+            guard try workspace.moveCurrentNoteToLibrary() else { return }
         } catch {
-            modelContext.rollback()
             feedbackMessage = "放入便签库未完成"
             throw error
         }
 
-        pinState = .unpinned
-        didReachCharacterLimit = false
-        isCharacterCountVisible = false
-        refreshSnapshots(notes: notes + [blank], currentNoteID: blank.id)
+        resetEditingStateAfterCurrentNoteChange()
     }
 
     func selectLibraryNote(id: UUID) async throws {
@@ -196,36 +146,14 @@ final class IslandNotesFeature {
               let currentNote else { return }
         guard await endCurrentActivityBarrier(noteID: currentNote.id) else { return }
 
-        let notes = try modelContext.fetch(FetchDescriptor<NoteRecord>())
-        let workbenches = try modelContext.fetch(FetchDescriptor<WorkbenchRecord>())
-        guard let selected = notes.first(where: { $0.id == id && $0.archivedAt != nil }),
-              let currentRecord = notes.first(where: { $0.id == currentNote.id }),
-              let workbench = workbenches.first else { return }
-
-        selected.archivedAt = nil
-        workbench.currentNoteID = selected.id
-
-        let remainingNotes: [NoteRecord]
-        if hasActionableContent(currentRecord.body) {
-            currentRecord.archivedAt = now()
-            remainingNotes = notes
-        } else {
-            modelContext.delete(currentRecord)
-            remainingNotes = notes.filter { $0.id != currentRecord.id }
-        }
-
         do {
-            try modelContext.save()
+            guard try workspace.replaceCurrentNote(withLibraryNoteID: id) else { return }
         } catch {
-            modelContext.rollback()
             feedbackMessage = "交换未完成"
             throw error
         }
 
-        pinState = .unpinned
-        didReachCharacterLimit = false
-        isCharacterCountVisible = false
-        refreshSnapshots(notes: remainingNotes, currentNoteID: selected.id)
+        resetEditingStateAfterCurrentNoteChange()
     }
 
     func requestDelete() {
@@ -242,33 +170,15 @@ final class IslandNotesFeature {
               let currentNote else { return }
         guard await endCurrentActivityBarrier(noteID: currentNote.id) else { return }
 
-        let notes = try modelContext.fetch(FetchDescriptor<NoteRecord>())
-        let workbenches = try modelContext.fetch(FetchDescriptor<WorkbenchRecord>())
-        guard let record = notes.first(where: { $0.id == currentNote.id }),
-              let workbench = workbenches.first else { return }
-
-        let timestamp = now()
-        let blank = NoteRecord(createdAt: timestamp, modifiedAt: timestamp)
-        modelContext.delete(record)
-        modelContext.insert(blank)
-        workbench.currentNoteID = blank.id
-
         do {
-            try modelContext.save()
+            guard try workspace.deleteCurrentNote() else { return }
         } catch {
-            modelContext.rollback()
             feedbackMessage = "删除未完成"
             throw error
         }
 
         deleteConfirmation = nil
-        pinState = .unpinned
-        didReachCharacterLimit = false
-        isCharacterCountVisible = false
-        refreshSnapshots(
-            notes: notes.filter { $0.id != record.id } + [blank],
-            currentNoteID: blank.id
-        )
+        resetEditingStateAfterCurrentNoteChange()
     }
 
     func startPinning() async {
@@ -400,11 +310,13 @@ final class IslandNotesFeature {
         deleteConfirmation: DeleteConfirmation? = nil,
         feedbackMessage: String? = nil
     ) -> IslandNotesFeature {
+        let workspace = NoteWorkspace(modelContext: modelContext)
+        workspace.loadPreview(records: records, currentNoteID: currentNoteID)
         let feature = IslandNotesFeature(
-            modelContext: modelContext,
+            workspace: workspace,
             liveActivityController: liveActivityController
         )
-        feature.refreshSnapshots(notes: records, currentNoteID: currentNoteID)
+        feature.editingText = workspace.currentNote?.body ?? ""
         feature.pinState = pinState
         feature.didReachCharacterLimit = didReachCharacterLimit
         feature.isCharacterCountVisible = isCharacterCountVisible
@@ -414,24 +326,11 @@ final class IslandNotesFeature {
     }
 #endif
 
-    private func refreshSnapshots(notes: [NoteRecord], currentNoteID: UUID) {
-        currentNote = notes.first(where: { $0.id == currentNoteID }).map(NoteSnapshot.init)
+    private func resetEditingStateAfterCurrentNoteChange() {
+        pinState = .unpinned
+        didReachCharacterLimit = false
+        isCharacterCountVisible = false
         editingText = currentNote?.body ?? ""
-        library = notes
-            .filter { $0.archivedAt != nil && $0.id != currentNoteID }
-            .sorted {
-                if $0.archivedAt == $1.archivedAt {
-                    return $0.id.uuidString < $1.id.uuidString
-                }
-                return ($0.archivedAt ?? .distantPast) > ($1.archivedAt ?? .distantPast)
-            }
-            .map(NoteSnapshot.init)
-    }
-
-    private func hasActionableContent(_ body: String) -> Bool {
-        body.unicodeScalars.contains {
-            !CharacterSet.whitespacesAndNewlines.contains($0)
-        }
     }
 
     private func endCurrentActivityBarrier(noteID: UUID) async -> Bool {

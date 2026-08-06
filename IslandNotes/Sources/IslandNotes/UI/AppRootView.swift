@@ -13,9 +13,10 @@ struct AppRootView: View {
         initialDeepLink: URL? = nil
     ) {
         self.initialDeepLink = initialDeepLink
+        let workspace = NoteWorkspace(modelContext: modelContext)
         _feature = State(
             initialValue: IslandNotesFeature(
-                modelContext: modelContext,
+                workspace: workspace,
                 liveActivityController: liveActivityController
             )
         )

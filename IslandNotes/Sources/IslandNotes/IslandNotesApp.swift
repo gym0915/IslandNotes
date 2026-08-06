@@ -9,8 +9,10 @@ struct IslandNotesApp: App {
     private let liveActivityController: ActivityKitLiveActivityController
     private let initialDeepLink: URL?
     private let simulatesSaveFailure: Bool
+    @State private var appearance: AppearanceSettings
 
     init() {
+        _appearance = State(initialValue: AppearanceSettings())
         let arguments = ProcessInfo.processInfo.arguments
         let isUITesting = arguments.contains("--uitesting-reset")
         simulatesSaveFailure = arguments.contains("--uitesting-save-failure")
@@ -41,9 +43,11 @@ struct IslandNotesApp: App {
             AppRootView(
                 modelContext: container.mainContext,
                 liveActivityController: liveActivityController,
+                appearance: appearance,
                 initialDeepLink: initialDeepLink,
                 simulatesSaveFailure: simulatesSaveFailure
             )
+            .preferredColorScheme(appearance.mode.colorScheme)
         }
         .modelContainer(container)
     }

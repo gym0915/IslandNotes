@@ -5,14 +5,17 @@ struct AppRootView: View {
     @Environment(\.scenePhase) private var scenePhase
     @State private var feature: IslandNotesFeature
     @State private var router = AppRouter()
+    private let appearance: AppearanceSettings
     private let initialDeepLink: URL?
 
     init(
         modelContext: ModelContext,
         liveActivityController: LiveActivityControlling,
+        appearance: AppearanceSettings,
         initialDeepLink: URL? = nil,
         simulatesSaveFailure: Bool = false
     ) {
+        self.appearance = appearance
         self.initialDeepLink = initialDeepLink
         let workspace: NoteWorkspace
         if simulatesSaveFailure {

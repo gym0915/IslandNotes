@@ -1,8 +1,9 @@
 // !$*UTF8*$!
 {
 	archiveVersion = 1;
-	classes = {};
-	objectVersion = 77;
+	classes = {
+	};
+	objectVersion = 71;
 	objects = {
 
 /* Begin PBXBuildFile section */
@@ -10,13 +11,41 @@
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
-		700000000000000000000001 = {isa = PBXContainerItemProxy; containerPortal = 100000000000000000000001 /* Project object */; proxyType = 1; remoteGlobalIDString = 300000000000000000000002; remoteInfo = IslandNotesWidget; };
-		700000000000000000000002 = {isa = PBXContainerItemProxy; containerPortal = 100000000000000000000001 /* Project object */; proxyType = 1; remoteGlobalIDString = 300000000000000000000001; remoteInfo = IslandNotes; };
-		700000000000000000000003 = {isa = PBXContainerItemProxy; containerPortal = 100000000000000000000001 /* Project object */; proxyType = 1; remoteGlobalIDString = 300000000000000000000001; remoteInfo = IslandNotes; };
+		700000000000000000000001 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 100000000000000000000001 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 300000000000000000000002;
+			remoteInfo = IslandNotesWidget;
+		};
+		700000000000000000000002 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 100000000000000000000001 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 300000000000000000000001;
+			remoteInfo = IslandNotes;
+		};
+		700000000000000000000003 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 100000000000000000000001 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 300000000000000000000001;
+			remoteInfo = IslandNotes;
+		};
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXCopyFilesBuildPhase section */
-		500000000000000000000004 /* Embed App Extensions */ = {isa = PBXCopyFilesBuildPhase; buildActionMask = 2147483647; dstPath = ""; dstSubfolderSpec = 13; files = (600000000000000000000001 /* IslandNotesWidget.appex in Embed App Extensions */, ); name = "Embed App Extensions"; runOnlyForDeploymentPostprocessing = 0; };
+		500000000000000000000004 /* Embed App Extensions */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = "";
+			dstSubfolderSpec = 13;
+			files = (
+				600000000000000000000001 /* IslandNotesWidget.appex in Embed App Extensions */,
+			);
+			name = "Embed App Extensions";
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
@@ -27,75 +56,541 @@
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
-		200000000000000000000001 /* IslandNotes */ = {isa = PBXFileSystemSynchronizedRootGroup; path = Sources/IslandNotes; sourceTree = "<group>"; };
-		200000000000000000000002 /* IslandNotesShared */ = {isa = PBXFileSystemSynchronizedRootGroup; path = Sources/IslandNotesShared; sourceTree = "<group>"; };
-		200000000000000000000003 /* IslandNotesWidget */ = {isa = PBXFileSystemSynchronizedRootGroup; path = Sources/IslandNotesWidget; sourceTree = "<group>"; };
-		200000000000000000000004 /* IslandNotesFeatureTests */ = {isa = PBXFileSystemSynchronizedRootGroup; path = Tests/IslandNotesFeatureTests; sourceTree = "<group>"; };
-		200000000000000000000005 /* IslandNotesUITests */ = {isa = PBXFileSystemSynchronizedRootGroup; path = Tests/IslandNotesUITests; sourceTree = "<group>"; };
+		200000000000000000000001 /* Sources/IslandNotes */ = {isa = PBXFileSystemSynchronizedRootGroup; explicitFileTypes = {}; explicitFolders = (); path = Sources/IslandNotes; sourceTree = "<group>"; };
+		200000000000000000000002 /* Sources/IslandNotesShared */ = {isa = PBXFileSystemSynchronizedRootGroup; explicitFileTypes = {}; explicitFolders = (); path = Sources/IslandNotesShared; sourceTree = "<group>"; };
+		200000000000000000000003 /* Sources/IslandNotesWidget */ = {isa = PBXFileSystemSynchronizedRootGroup; explicitFileTypes = {}; explicitFolders = (); path = Sources/IslandNotesWidget; sourceTree = "<group>"; };
+		200000000000000000000004 /* Tests/IslandNotesFeatureTests */ = {isa = PBXFileSystemSynchronizedRootGroup; explicitFileTypes = {}; explicitFolders = (); path = Tests/IslandNotesFeatureTests; sourceTree = "<group>"; };
+		200000000000000000000005 /* Tests/IslandNotesUITests */ = {isa = PBXFileSystemSynchronizedRootGroup; explicitFileTypes = {}; explicitFolders = (); path = Tests/IslandNotesUITests; sourceTree = "<group>"; };
 /* End PBXFileSystemSynchronizedRootGroup section */
 
 /* Begin PBXFrameworksBuildPhase section */
-		500000000000000000000002 /* Frameworks */ = {isa = PBXFrameworksBuildPhase; buildActionMask = 2147483647; files = (); runOnlyForDeploymentPostprocessing = 0; };
-		500000000000000000000006 /* Frameworks */ = {isa = PBXFrameworksBuildPhase; buildActionMask = 2147483647; files = (); runOnlyForDeploymentPostprocessing = 0; };
-		500000000000000000000009 /* Frameworks */ = {isa = PBXFrameworksBuildPhase; buildActionMask = 2147483647; files = (); runOnlyForDeploymentPostprocessing = 0; };
-		50000000000000000000000C /* Frameworks */ = {isa = PBXFrameworksBuildPhase; buildActionMask = 2147483647; files = (); runOnlyForDeploymentPostprocessing = 0; };
+		500000000000000000000002 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		500000000000000000000006 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		500000000000000000000009 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		50000000000000000000000C /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
-		100000000000000000000002 = {isa = PBXGroup; children = (200000000000000000000001 /* IslandNotes */, 200000000000000000000002 /* IslandNotesShared */, 200000000000000000000003 /* IslandNotesWidget */, 200000000000000000000004 /* IslandNotesFeatureTests */, 200000000000000000000005 /* IslandNotesUITests */, 100000000000000000000003 /* Products */, ); sourceTree = "<group>"; };
-		100000000000000000000003 /* Products */ = {isa = PBXGroup; children = (400000000000000000000001 /* IslandNotes.app */, 400000000000000000000002 /* IslandNotesWidget.appex */, 400000000000000000000003 /* IslandNotesFeatureTests.xctest */, 400000000000000000000004 /* IslandNotesUITests.xctest */, ); name = Products; sourceTree = "<group>"; };
+		100000000000000000000002 = {
+			isa = PBXGroup;
+			children = (
+				200000000000000000000001 /* Sources/IslandNotes */,
+				200000000000000000000002 /* Sources/IslandNotesShared */,
+				200000000000000000000003 /* Sources/IslandNotesWidget */,
+				200000000000000000000004 /* Tests/IslandNotesFeatureTests */,
+				200000000000000000000005 /* Tests/IslandNotesUITests */,
+				100000000000000000000003 /* Products */,
+			);
+			sourceTree = "<group>";
+		};
+		100000000000000000000003 /* Products */ = {
+			isa = PBXGroup;
+			children = (
+				400000000000000000000001 /* IslandNotes.app */,
+				400000000000000000000002 /* IslandNotesWidget.appex */,
+				400000000000000000000003 /* IslandNotesFeatureTests.xctest */,
+				400000000000000000000004 /* IslandNotesUITests.xctest */,
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
 /* End PBXGroup section */
 
 /* Begin PBXNativeTarget section */
-		300000000000000000000001 /* IslandNotes */ = {isa = PBXNativeTarget; buildConfigurationList = 800000000000000000000002; buildPhases = (500000000000000000000001 /* Sources */, 500000000000000000000002 /* Frameworks */, 500000000000000000000003 /* Resources */, 500000000000000000000004 /* Embed App Extensions */, ); buildRules = (); dependencies = (710000000000000000000001, ); fileSystemSynchronizedGroups = (200000000000000000000001 /* IslandNotes */, 200000000000000000000002 /* IslandNotesShared */, ); name = IslandNotes; productName = IslandNotes; productReference = 400000000000000000000001; productType = "com.apple.product-type.application"; };
-		300000000000000000000002 /* IslandNotesWidget */ = {isa = PBXNativeTarget; buildConfigurationList = 800000000000000000000003; buildPhases = (500000000000000000000005 /* Sources */, 500000000000000000000006 /* Frameworks */, 500000000000000000000007 /* Resources */, ); buildRules = (); dependencies = (); fileSystemSynchronizedGroups = (200000000000000000000003 /* IslandNotesWidget */, 200000000000000000000002 /* IslandNotesShared */, ); name = IslandNotesWidget; productName = IslandNotesWidget; productReference = 400000000000000000000002; productType = "com.apple.product-type.app-extension"; };
-		300000000000000000000003 /* IslandNotesFeatureTests */ = {isa = PBXNativeTarget; buildConfigurationList = 800000000000000000000004; buildPhases = (500000000000000000000008 /* Sources */, 500000000000000000000009 /* Frameworks */, 50000000000000000000000A /* Resources */, ); buildRules = (); dependencies = (710000000000000000000002, ); fileSystemSynchronizedGroups = (200000000000000000000004 /* IslandNotesFeatureTests */, ); name = IslandNotesFeatureTests; productName = IslandNotesFeatureTests; productReference = 400000000000000000000003; productType = "com.apple.product-type.bundle.unit-test"; };
-		300000000000000000000004 /* IslandNotesUITests */ = {isa = PBXNativeTarget; buildConfigurationList = 800000000000000000000005; buildPhases = (50000000000000000000000B /* Sources */, 50000000000000000000000C /* Frameworks */, 50000000000000000000000D /* Resources */, ); buildRules = (); dependencies = (710000000000000000000003, ); fileSystemSynchronizedGroups = (200000000000000000000005 /* IslandNotesUITests */, ); name = IslandNotesUITests; productName = IslandNotesUITests; productReference = 400000000000000000000004; productType = "com.apple.product-type.bundle.ui-testing"; };
+		300000000000000000000001 /* IslandNotes */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 800000000000000000000002 /* Build configuration list for PBXNativeTarget "IslandNotes" */;
+			buildPhases = (
+				500000000000000000000001 /* Sources */,
+				500000000000000000000002 /* Frameworks */,
+				500000000000000000000003 /* Resources */,
+				500000000000000000000004 /* Embed App Extensions */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				710000000000000000000001 /* PBXTargetDependency */,
+			);
+			fileSystemSynchronizedGroups = (
+				200000000000000000000001 /* Sources/IslandNotes */,
+				200000000000000000000002 /* Sources/IslandNotesShared */,
+			);
+			name = IslandNotes;
+			productName = IslandNotes;
+			productReference = 400000000000000000000001 /* IslandNotes.app */;
+			productType = "com.apple.product-type.application";
+		};
+		300000000000000000000002 /* IslandNotesWidget */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 800000000000000000000003 /* Build configuration list for PBXNativeTarget "IslandNotesWidget" */;
+			buildPhases = (
+				500000000000000000000005 /* Sources */,
+				500000000000000000000006 /* Frameworks */,
+				500000000000000000000007 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			fileSystemSynchronizedGroups = (
+				200000000000000000000002 /* Sources/IslandNotesShared */,
+				200000000000000000000003 /* Sources/IslandNotesWidget */,
+			);
+			name = IslandNotesWidget;
+			productName = IslandNotesWidget;
+			productReference = 400000000000000000000002 /* IslandNotesWidget.appex */;
+			productType = "com.apple.product-type.app-extension";
+		};
+		300000000000000000000003 /* IslandNotesFeatureTests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 800000000000000000000004 /* Build configuration list for PBXNativeTarget "IslandNotesFeatureTests" */;
+			buildPhases = (
+				500000000000000000000008 /* Sources */,
+				500000000000000000000009 /* Frameworks */,
+				50000000000000000000000A /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				710000000000000000000002 /* PBXTargetDependency */,
+			);
+			fileSystemSynchronizedGroups = (
+				200000000000000000000004 /* Tests/IslandNotesFeatureTests */,
+			);
+			name = IslandNotesFeatureTests;
+			productName = IslandNotesFeatureTests;
+			productReference = 400000000000000000000003 /* IslandNotesFeatureTests.xctest */;
+			productType = "com.apple.product-type.bundle.unit-test";
+		};
+		300000000000000000000004 /* IslandNotesUITests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 800000000000000000000005 /* Build configuration list for PBXNativeTarget "IslandNotesUITests" */;
+			buildPhases = (
+				50000000000000000000000B /* Sources */,
+				50000000000000000000000C /* Frameworks */,
+				50000000000000000000000D /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				710000000000000000000003 /* PBXTargetDependency */,
+			);
+			fileSystemSynchronizedGroups = (
+				200000000000000000000005 /* Tests/IslandNotesUITests */,
+			);
+			name = IslandNotesUITests;
+			productName = IslandNotesUITests;
+			productReference = 400000000000000000000004 /* IslandNotesUITests.xctest */;
+			productType = "com.apple.product-type.bundle.ui-testing";
+		};
 /* End PBXNativeTarget section */
 
 /* Begin PBXProject section */
-		100000000000000000000001 /* Project object */ = {isa = PBXProject; attributes = {BuildIndependentTargetsInParallel = 1; LastSwiftUpdateCheck = 2630; LastUpgradeCheck = 2630; TargetAttributes = {300000000000000000000001 = {CreatedOnToolsVersion = 26.3; }; 300000000000000000000002 = {CreatedOnToolsVersion = 26.3; }; 300000000000000000000003 = {CreatedOnToolsVersion = 26.3; TestTargetID = 300000000000000000000001; }; 300000000000000000000004 = {CreatedOnToolsVersion = 26.3; TestTargetID = 300000000000000000000001; }; }; }; buildConfigurationList = 800000000000000000000001; compatibilityVersion = "Xcode 16.0"; developmentRegion = zh-Hans; hasScannedForEncodings = 0; knownRegions = (zh-Hans, en, Base, ); mainGroup = 100000000000000000000002; minimizedProjectReferenceProxies = 1; preferredProjectObjectVersion = 77; productRefGroup = 100000000000000000000003; projectDirPath = ""; projectRoot = ""; targets = (300000000000000000000001, 300000000000000000000002, 300000000000000000000003, 300000000000000000000004, ); };
+		100000000000000000000001 /* Project object */ = {
+			isa = PBXProject;
+			attributes = {
+				BuildIndependentTargetsInParallel = 1;
+				LastSwiftUpdateCheck = 2630;
+				LastUpgradeCheck = 2630;
+				TargetAttributes = {
+					300000000000000000000001 = {
+						CreatedOnToolsVersion = 26.3;
+					};
+					300000000000000000000002 = {
+						CreatedOnToolsVersion = 26.3;
+					};
+					300000000000000000000003 = {
+						CreatedOnToolsVersion = 26.3;
+						TestTargetID = 300000000000000000000001;
+					};
+					300000000000000000000004 = {
+						CreatedOnToolsVersion = 26.3;
+						TestTargetID = 300000000000000000000001;
+					};
+				};
+			};
+			buildConfigurationList = 800000000000000000000001 /* Build configuration list for PBXProject "IslandNotes" */;
+			compatibilityVersion = "Xcode 16.0";
+			developmentRegion = "zh-Hans";
+			hasScannedForEncodings = 0;
+			knownRegions = (
+				"zh-Hans",
+				en,
+				Base,
+			);
+			mainGroup = 100000000000000000000002;
+			minimizedProjectReferenceProxies = 1;
+			productRefGroup = 100000000000000000000003 /* Products */;
+			projectDirPath = "";
+			projectRoot = "";
+			targets = (
+				300000000000000000000001 /* IslandNotes */,
+				300000000000000000000002 /* IslandNotesWidget */,
+				300000000000000000000003 /* IslandNotesFeatureTests */,
+				300000000000000000000004 /* IslandNotesUITests */,
+			);
+		};
 /* End PBXProject section */
 
 /* Begin PBXResourcesBuildPhase section */
-		500000000000000000000003 /* Resources */ = {isa = PBXResourcesBuildPhase; buildActionMask = 2147483647; files = (); runOnlyForDeploymentPostprocessing = 0; };
-		500000000000000000000007 /* Resources */ = {isa = PBXResourcesBuildPhase; buildActionMask = 2147483647; files = (); runOnlyForDeploymentPostprocessing = 0; };
-		50000000000000000000000A /* Resources */ = {isa = PBXResourcesBuildPhase; buildActionMask = 2147483647; files = (); runOnlyForDeploymentPostprocessing = 0; };
-		50000000000000000000000D /* Resources */ = {isa = PBXResourcesBuildPhase; buildActionMask = 2147483647; files = (); runOnlyForDeploymentPostprocessing = 0; };
+		500000000000000000000003 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		500000000000000000000007 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		50000000000000000000000A /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		50000000000000000000000D /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXResourcesBuildPhase section */
 
 /* Begin PBXSourcesBuildPhase section */
-		500000000000000000000001 /* Sources */ = {isa = PBXSourcesBuildPhase; buildActionMask = 2147483647; files = (); runOnlyForDeploymentPostprocessing = 0; };
-		500000000000000000000005 /* Sources */ = {isa = PBXSourcesBuildPhase; buildActionMask = 2147483647; files = (); runOnlyForDeploymentPostprocessing = 0; };
-		500000000000000000000008 /* Sources */ = {isa = PBXSourcesBuildPhase; buildActionMask = 2147483647; files = (); runOnlyForDeploymentPostprocessing = 0; };
-		50000000000000000000000B /* Sources */ = {isa = PBXSourcesBuildPhase; buildActionMask = 2147483647; files = (); runOnlyForDeploymentPostprocessing = 0; };
+		500000000000000000000001 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		500000000000000000000005 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		500000000000000000000008 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		50000000000000000000000B /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXSourcesBuildPhase section */
 
 /* Begin PBXTargetDependency section */
-		710000000000000000000001 = {isa = PBXTargetDependency; target = 300000000000000000000002 /* IslandNotesWidget */; targetProxy = 700000000000000000000001; };
-		710000000000000000000002 = {isa = PBXTargetDependency; target = 300000000000000000000001 /* IslandNotes */; targetProxy = 700000000000000000000002; };
-		710000000000000000000003 = {isa = PBXTargetDependency; target = 300000000000000000000001 /* IslandNotes */; targetProxy = 700000000000000000000003; };
+		710000000000000000000001 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 300000000000000000000002 /* IslandNotesWidget */;
+			targetProxy = 700000000000000000000001 /* PBXContainerItemProxy */;
+		};
+		710000000000000000000002 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 300000000000000000000001 /* IslandNotes */;
+			targetProxy = 700000000000000000000002 /* PBXContainerItemProxy */;
+		};
+		710000000000000000000003 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 300000000000000000000001 /* IslandNotes */;
+			targetProxy = 700000000000000000000003 /* PBXContainerItemProxy */;
+		};
 /* End PBXTargetDependency section */
 
 /* Begin XCBuildConfiguration section */
-		900000000000000000000001 /* Debug project */ = {isa = XCBuildConfiguration; buildSettings = {ALWAYS_SEARCH_USER_PATHS = NO; CLANG_ENABLE_MODULES = YES; CLANG_ENABLE_OBJC_ARC = YES; DEBUG_INFORMATION_FORMAT = dwarf; ENABLE_TESTABILITY = YES; GCC_C_LANGUAGE_STANDARD = gnu17; IPHONEOS_DEPLOYMENT_TARGET = 17.0; ONLY_ACTIVE_ARCH = YES; SDKROOT = iphoneos; SWIFT_ACTIVE_COMPILATION_CONDITIONS = DEBUG; SWIFT_OPTIMIZATION_LEVEL = "-Onone"; }; name = Debug; };
-		900000000000000000000002 /* Release project */ = {isa = XCBuildConfiguration; buildSettings = {ALWAYS_SEARCH_USER_PATHS = NO; CLANG_ENABLE_MODULES = YES; CLANG_ENABLE_OBJC_ARC = YES; DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym"; GCC_C_LANGUAGE_STANDARD = gnu17; IPHONEOS_DEPLOYMENT_TARGET = 17.0; SDKROOT = iphoneos; SWIFT_COMPILATION_MODE = wholemodule; VALIDATE_PRODUCT = YES; }; name = Release; };
-		900000000000000000000003 /* Debug app */ = {isa = XCBuildConfiguration; buildSettings = {CODE_SIGN_STYLE = Automatic; CURRENT_PROJECT_VERSION = 1; ENABLE_PREVIEWS = YES; GENERATE_INFOPLIST_FILE = NO; INFOPLIST_FILE = Configuration/IslandNotes-Info.plist; LD_RUNPATH_SEARCH_PATHS = ("$(inherited)", "@executable_path/Frameworks", ); MARKETING_VERSION = 1.0; PRODUCT_BUNDLE_IDENTIFIER = com.steve.IslandNotes; PRODUCT_NAME = "$(TARGET_NAME)"; SUPPORTED_PLATFORMS = "iphoneos iphonesimulator"; SUPPORTS_MACCATALYST = NO; SUPPORTS_MAC_DESIGNED_FOR_IPHONE_IPAD = NO; SWIFT_EMIT_LOC_STRINGS = YES; SWIFT_STRICT_CONCURRENCY = complete; SWIFT_VERSION = 6.0; TARGETED_DEVICE_FAMILY = 1; }; name = Debug; };
-		900000000000000000000004 /* Release app */ = {isa = XCBuildConfiguration; buildSettings = {CODE_SIGN_STYLE = Automatic; CURRENT_PROJECT_VERSION = 1; ENABLE_PREVIEWS = YES; GENERATE_INFOPLIST_FILE = NO; INFOPLIST_FILE = Configuration/IslandNotes-Info.plist; LD_RUNPATH_SEARCH_PATHS = ("$(inherited)", "@executable_path/Frameworks", ); MARKETING_VERSION = 1.0; PRODUCT_BUNDLE_IDENTIFIER = com.steve.IslandNotes; PRODUCT_NAME = "$(TARGET_NAME)"; SUPPORTED_PLATFORMS = "iphoneos iphonesimulator"; SUPPORTS_MACCATALYST = NO; SUPPORTS_MAC_DESIGNED_FOR_IPHONE_IPAD = NO; SWIFT_EMIT_LOC_STRINGS = YES; SWIFT_STRICT_CONCURRENCY = complete; SWIFT_VERSION = 6.0; TARGETED_DEVICE_FAMILY = 1; }; name = Release; };
-		900000000000000000000005 /* Debug widget */ = {isa = XCBuildConfiguration; buildSettings = {APPLICATION_EXTENSION_API_ONLY = YES; CODE_SIGN_STYLE = Automatic; CURRENT_PROJECT_VERSION = 1; GENERATE_INFOPLIST_FILE = NO; INFOPLIST_FILE = Configuration/IslandNotesWidget-Info.plist; LD_RUNPATH_SEARCH_PATHS = ("$(inherited)", "@executable_path/Frameworks", "@executable_path/../../Frameworks", ); MARKETING_VERSION = 1.0; PRODUCT_BUNDLE_IDENTIFIER = com.steve.IslandNotes.widget; PRODUCT_NAME = "$(TARGET_NAME)"; SKIP_INSTALL = YES; SUPPORTED_PLATFORMS = "iphoneos iphonesimulator"; SWIFT_EMIT_LOC_STRINGS = YES; SWIFT_STRICT_CONCURRENCY = complete; SWIFT_VERSION = 6.0; TARGETED_DEVICE_FAMILY = 1; }; name = Debug; };
-		900000000000000000000006 /* Release widget */ = {isa = XCBuildConfiguration; buildSettings = {APPLICATION_EXTENSION_API_ONLY = YES; CODE_SIGN_STYLE = Automatic; CURRENT_PROJECT_VERSION = 1; GENERATE_INFOPLIST_FILE = NO; INFOPLIST_FILE = Configuration/IslandNotesWidget-Info.plist; LD_RUNPATH_SEARCH_PATHS = ("$(inherited)", "@executable_path/Frameworks", "@executable_path/../../Frameworks", ); MARKETING_VERSION = 1.0; PRODUCT_BUNDLE_IDENTIFIER = com.steve.IslandNotes.widget; PRODUCT_NAME = "$(TARGET_NAME)"; SKIP_INSTALL = YES; SUPPORTED_PLATFORMS = "iphoneos iphonesimulator"; SWIFT_EMIT_LOC_STRINGS = YES; SWIFT_STRICT_CONCURRENCY = complete; SWIFT_VERSION = 6.0; TARGETED_DEVICE_FAMILY = 1; }; name = Release; };
-		900000000000000000000007 /* Debug tests */ = {isa = XCBuildConfiguration; buildSettings = {BUNDLE_LOADER = "$(TEST_HOST)"; CODE_SIGN_STYLE = Automatic; CURRENT_PROJECT_VERSION = 1; GENERATE_INFOPLIST_FILE = YES; MARKETING_VERSION = 1.0; PRODUCT_BUNDLE_IDENTIFIER = com.steve.IslandNotesFeatureTests; PRODUCT_NAME = "$(TARGET_NAME)"; SUPPORTED_PLATFORMS = "iphoneos iphonesimulator"; SWIFT_STRICT_CONCURRENCY = complete; SWIFT_VERSION = 6.0; TARGETED_DEVICE_FAMILY = 1; TEST_HOST = "$(BUILT_PRODUCTS_DIR)/IslandNotes.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/IslandNotes"; }; name = Debug; };
-		900000000000000000000008 /* Release tests */ = {isa = XCBuildConfiguration; buildSettings = {BUNDLE_LOADER = "$(TEST_HOST)"; CODE_SIGN_STYLE = Automatic; CURRENT_PROJECT_VERSION = 1; GENERATE_INFOPLIST_FILE = YES; MARKETING_VERSION = 1.0; PRODUCT_BUNDLE_IDENTIFIER = com.steve.IslandNotesFeatureTests; PRODUCT_NAME = "$(TARGET_NAME)"; SUPPORTED_PLATFORMS = "iphoneos iphonesimulator"; SWIFT_STRICT_CONCURRENCY = complete; SWIFT_VERSION = 6.0; TARGETED_DEVICE_FAMILY = 1; TEST_HOST = "$(BUILT_PRODUCTS_DIR)/IslandNotes.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/IslandNotes"; }; name = Release; };
-		900000000000000000000009 /* Debug UI tests */ = {isa = XCBuildConfiguration; buildSettings = {CODE_SIGN_STYLE = Automatic; CURRENT_PROJECT_VERSION = 1; GENERATE_INFOPLIST_FILE = YES; MARKETING_VERSION = 1.0; PRODUCT_BUNDLE_IDENTIFIER = com.steve.IslandNotesUITests; PRODUCT_NAME = "$(TARGET_NAME)"; SUPPORTED_PLATFORMS = "iphoneos iphonesimulator"; SWIFT_STRICT_CONCURRENCY = complete; SWIFT_VERSION = 6.0; TARGETED_DEVICE_FAMILY = 1; TEST_TARGET_NAME = IslandNotes; }; name = Debug; };
-		90000000000000000000000A /* Release UI tests */ = {isa = XCBuildConfiguration; buildSettings = {CODE_SIGN_STYLE = Automatic; CURRENT_PROJECT_VERSION = 1; GENERATE_INFOPLIST_FILE = YES; MARKETING_VERSION = 1.0; PRODUCT_BUNDLE_IDENTIFIER = com.steve.IslandNotesUITests; PRODUCT_NAME = "$(TARGET_NAME)"; SUPPORTED_PLATFORMS = "iphoneos iphonesimulator"; SWIFT_STRICT_CONCURRENCY = complete; SWIFT_VERSION = 6.0; TARGETED_DEVICE_FAMILY = 1; TEST_TARGET_NAME = IslandNotes; }; name = Release; };
+		900000000000000000000001 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				DEBUG_INFORMATION_FORMAT = dwarf;
+				ENABLE_TESTABILITY = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu17;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				ONLY_ACTIVE_ARCH = YES;
+				SDKROOT = iphoneos;
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = DEBUG;
+				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+			};
+			name = Debug;
+		};
+		900000000000000000000002 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				GCC_C_LANGUAGE_STANDARD = gnu17;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				SDKROOT = iphoneos;
+				SWIFT_COMPILATION_MODE = wholemodule;
+				VALIDATE_PRODUCT = YES;
+			};
+			name = Release;
+		};
+		900000000000000000000003 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = 95J84WS55Z;
+				ENABLE_PREVIEWS = YES;
+				GENERATE_INFOPLIST_FILE = NO;
+				INFOPLIST_FILE = "Configuration/IslandNotes-Info.plist";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.steve.IslandNotes;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
+				SUPPORTS_MACCATALYST = NO;
+				SUPPORTS_MAC_DESIGNED_FOR_IPHONE_IPAD = NO;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_STRICT_CONCURRENCY = complete;
+				SWIFT_VERSION = 6.0;
+				TARGETED_DEVICE_FAMILY = 1;
+			};
+			name = Debug;
+		};
+		900000000000000000000004 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = 95J84WS55Z;
+				ENABLE_PREVIEWS = YES;
+				GENERATE_INFOPLIST_FILE = NO;
+				INFOPLIST_FILE = "Configuration/IslandNotes-Info.plist";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.steve.IslandNotes;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
+				SUPPORTS_MACCATALYST = NO;
+				SUPPORTS_MAC_DESIGNED_FOR_IPHONE_IPAD = NO;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_STRICT_CONCURRENCY = complete;
+				SWIFT_VERSION = 6.0;
+				TARGETED_DEVICE_FAMILY = 1;
+			};
+			name = Release;
+		};
+		900000000000000000000005 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				APPLICATION_EXTENSION_API_ONLY = YES;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = 95J84WS55Z;
+				GENERATE_INFOPLIST_FILE = NO;
+				INFOPLIST_FILE = "Configuration/IslandNotesWidget-Info.plist";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@executable_path/../../Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.steve.IslandNotes.widget;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SKIP_INSTALL = YES;
+				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_STRICT_CONCURRENCY = complete;
+				SWIFT_VERSION = 6.0;
+				TARGETED_DEVICE_FAMILY = 1;
+			};
+			name = Debug;
+		};
+		900000000000000000000006 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				APPLICATION_EXTENSION_API_ONLY = YES;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = 95J84WS55Z;
+				GENERATE_INFOPLIST_FILE = NO;
+				INFOPLIST_FILE = "Configuration/IslandNotesWidget-Info.plist";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@executable_path/../../Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.steve.IslandNotes.widget;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SKIP_INSTALL = YES;
+				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_STRICT_CONCURRENCY = complete;
+				SWIFT_VERSION = 6.0;
+				TARGETED_DEVICE_FAMILY = 1;
+			};
+			name = Release;
+		};
+		900000000000000000000007 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				GENERATE_INFOPLIST_FILE = YES;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.steve.IslandNotesFeatureTests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
+				SWIFT_STRICT_CONCURRENCY = complete;
+				SWIFT_VERSION = 6.0;
+				TARGETED_DEVICE_FAMILY = 1;
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/IslandNotes.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/IslandNotes";
+			};
+			name = Debug;
+		};
+		900000000000000000000008 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				GENERATE_INFOPLIST_FILE = YES;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.steve.IslandNotesFeatureTests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
+				SWIFT_STRICT_CONCURRENCY = complete;
+				SWIFT_VERSION = 6.0;
+				TARGETED_DEVICE_FAMILY = 1;
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/IslandNotes.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/IslandNotes";
+			};
+			name = Release;
+		};
+		900000000000000000000009 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				GENERATE_INFOPLIST_FILE = YES;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.steve.IslandNotesUITests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
+				SWIFT_STRICT_CONCURRENCY = complete;
+				SWIFT_VERSION = 6.0;
+				TARGETED_DEVICE_FAMILY = 1;
+				TEST_TARGET_NAME = IslandNotes;
+			};
+			name = Debug;
+		};
+		90000000000000000000000A /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				GENERATE_INFOPLIST_FILE = YES;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.steve.IslandNotesUITests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
+				SWIFT_STRICT_CONCURRENCY = complete;
+				SWIFT_VERSION = 6.0;
+				TARGETED_DEVICE_FAMILY = 1;
+				TEST_TARGET_NAME = IslandNotes;
+			};
+			name = Release;
+		};
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
-		800000000000000000000001 = {isa = XCConfigurationList; buildConfigurations = (900000000000000000000001, 900000000000000000000002, ); defaultConfigurationIsVisible = 0; defaultConfigurationName = Release; };
-		800000000000000000000002 = {isa = XCConfigurationList; buildConfigurations = (900000000000000000000003, 900000000000000000000004, ); defaultConfigurationIsVisible = 0; defaultConfigurationName = Release; };
-		800000000000000000000003 = {isa = XCConfigurationList; buildConfigurations = (900000000000000000000005, 900000000000000000000006, ); defaultConfigurationIsVisible = 0; defaultConfigurationName = Release; };
-		800000000000000000000004 = {isa = XCConfigurationList; buildConfigurations = (900000000000000000000007, 900000000000000000000008, ); defaultConfigurationIsVisible = 0; defaultConfigurationName = Release; };
-		800000000000000000000005 = {isa = XCConfigurationList; buildConfigurations = (900000000000000000000009, 90000000000000000000000A, ); defaultConfigurationIsVisible = 0; defaultConfigurationName = Release; };
+		800000000000000000000001 /* Build configuration list for PBXProject "IslandNotes" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				900000000000000000000001 /* Debug */,
+				900000000000000000000002 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		800000000000000000000002 /* Build configuration list for PBXNativeTarget "IslandNotes" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				900000000000000000000003 /* Debug */,
+				900000000000000000000004 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		800000000000000000000003 /* Build configuration list for PBXNativeTarget "IslandNotesWidget" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				900000000000000000000005 /* Debug */,
+				900000000000000000000006 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		800000000000000000000004 /* Build configuration list for PBXNativeTarget "IslandNotesFeatureTests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				900000000000000000000007 /* Debug */,
+				900000000000000000000008 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		800000000000000000000005 /* Build configuration list for PBXNativeTarget "IslandNotesUITests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				900000000000000000000009 /* Debug */,
+				90000000000000000000000A /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
 /* End XCConfigurationList section */
 	};
 	rootObject = 100000000000000000000001 /* Project object */;

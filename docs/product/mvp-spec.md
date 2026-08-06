@@ -1,4 +1,4 @@
-# 灵动岛便签 MVP 原生 App 开发规格
+# Island Notes 新版设计与职责重构规格
 
 - Tracker: `local-markdown`
 - Label: `ready-for-agent`
@@ -6,369 +6,296 @@
 
 ## Problem Statement
 
-用户需要一个足够轻、足够聚焦的原生 iPhone App，把眼下最想随时看到的一小段纯文字放在唯一的当前便签槽位中，并通过一次明确的“挂起”动作，将同一条当前便签短期投影到灵动岛展开态与锁屏展示。现有资料已经确认了产品模型、ActivityKit 系统边界和视觉基线，但这些结论分散在 Wayfinder 决策、系统研究、Web 原型和过时实施文档中；若不先形成统一规格，开发 Agent 容易重新引入多便签列表、标题、待办状态、永久挂起、系统全文显示保证或其他已经否决的方向。
+Island Notes 已经有一版可运行的原生 iPhone 实现，能够维护唯一当前便签、在本机保存便签库，并通过 Live Activity 把当前便签投影到 Dynamic Island 和 Lock Screen。现有实现证明了 SwiftUI、SwiftData、ActivityKit、WidgetKit 与 Observation 的基本产品链路，也积累了内存数据库、ActivityKit fake、功能组合测试、UI 测试和真机验收清单。
 
-用户还需要确保本机便签内容始终比系统展示更可靠：Live Activity 可能启动失败、更新失败、被用户移除、被系统提前结束、达到 8 小时上限，或在 App/设备重启后呈现不同状态，但这些情况都不能删除、损坏或悄然替换 SwiftData 中的当前便签和便签库内容。App 必须用可理解的状态和有限的恢复动作收敛，而不能依赖一个长期布尔字段假装系统仍在展示。
+但当前界面已经不再符合最新高保真产品方向。新版原型引入了完整的 Workbench 展示态与编辑态、显式 `Done` 提交、渲染后的圆点列表、More Menu、sheet 形式的 Note Library 与 Settings、持久化显示模式、定制删除确认、完整组件状态和规范性 Design System。旧规格仍描述常驻编辑器、每次输入自动保存、直接 Library 入口、整行交换、无 Settings、自定义外观不在范围等旧行为；若继续以旧规格或旧测试文案为准，会得到一个行为和视觉都错误的版本。
 
-本规格的目的，是把已确认结论整理为一份可直接用于实施规划和 TDD 的 `ready-for-agent` 开发契约。后续开发 Agent 不需要重新开展产品访谈，也不得回到旧列表型便签模型。
+同时，当前 `IslandNotesFeature` 集中了界面状态、SwiftData 启动与事务、编辑保存、便签库操作、Live Activity 启动与停止、更新防抖、结束屏障、系统对账和错误反馈。这个集中入口适合作为最高层行为 seam，但职责已经过多，使新版页面状态、导航、外观和系统生命周期更难独立理解、验证和维护。问题不是缺少“MVVM”标签，而是持久化不变量、Live Activity 生命周期、App 导航和外观偏好没有形成边界清晰的深模块。
+
+这次改版需要在不丢失现有数据、不破坏已经验证的 Live Activity 行为、并持续保持高层行为测试可用的前提下完成。实现不能通过大爆炸式重写、重置 SwiftData、引入没有第二个 adapter 的抽象层，或给每个按钮和视觉组件增加浅薄 ViewModel 来换取表面上的分层。
 
 ## Solution
 
-构建一个最低部署目标为 iOS 17、只支持带灵动岛 iPhone 的原生 App。App 使用 SwiftUI 提供当前便签工作台与便签库，使用 SwiftData 在本机长期保存便签，使用 ActivityKit 管理一次最长 8 小时且可能提前结束的 Live Activity 展示会话，并使用 WidgetKit 提供紧凑态、minimal、展开态和锁屏展示。
+把 Island Notes 更新为最新高保真原型定义的英文原生 iPhone 产品，并以 Workbench 作为唯一当前便签的工作位置。当前便签默认显示渲染内容；用户点击便签进入纯源文本编辑，输入只修改内存编辑草稿，点击 `Done` 才提交到 SwiftData。只有源文本中以 `- ` 开头的行渲染为圆点列表；源文本本身仍是唯一持久内容和 240 个用户感知字符的计数对象。
 
-首页始终存在唯一的当前便签槽位。当前便签是一段最多 240 个用户感知字符的纯文字，文本区域本身始终可编辑，接受并原样保存中文、英文、数字、空格、换行、标点和组合 Emoji；没有标题、列表解析、待办状态、查看态/编辑态切换、新建、保存或完成按钮。每次有效编辑先自动保存到 SwiftData；若当前便签正在挂起，则在前台短暂停顿后把同一内容状态更新到活跃 Live Activity。
+Workbench 的 More Menu 只提供 Note Library 和 Settings。两者以最新原型中的圆角 sheet 呈现。Note Library 按最近进入库的时间倒序显示便签，每行通过明确的行尾替换按钮交换当前便签；Settings 提供持久化的 Automatic、Light 和 Dark 显示模式，并保留 Feedback、Website 与 About 的无动作占位行。删除使用原型规定的 App 自有底部确认界面。产品界面、反馈和无障碍文案本次全部使用英文。
 
-用户可以对非空白当前便签执行挂起、取消挂起、放入便签库或删除。便签库只保存旧便签并按最近入库时间倒序展示；点击一条旧便签立即与当前便签交换，且新的当前便签不会自动挂起。当前便签正在挂起时，入库、删除或交换必须先可靠结束对应展示会话；若结束后系统仍报告 Activity 活跃，则中止该内容操作并保留原状态，以维护“当前便签与挂起便签不能分离”的不变量。
+保留唯一当前便签、原子入库/替换/删除、240 字素限制、4 KB Activity payload 检查、最长 8 小时 Live 会话、ActivityKit 实际状态事实来源、结束屏障、启动/前台/deep link 对账以及既有数据原地升级。Live 会话使用 `Go Live` / `Live` 单一控件管理；Dynamic Island Compact 与 Minimal 只显示品牌便签图标，Expanded 和 Lock Screen 使用已提交源文本并呈现相同的圆点列表语义，同时允许系统根据各自空间独立换行和截断。
 
-紧凑态和 minimal 只显示可识别 App 或挂起状态的标记，不显示便签正文。展开态与锁屏展示读取同一条当前便签和同一内容状态，但使用各自适合系统区域的换行与截断策略，不承诺相同排版、相同可见范围或完整显示全部 240 个字符。点击任一 Live Activity 展示入口回到当前便签工作台。App 不主动隐藏、模糊或概括正文；最终是否显示、redact、隐藏或移除仍服从用户设置和系统行为。
+架构采用 Feature 组合层加深模块，而不是把完整 MVVM 当作目标。保留 `@MainActor @Observable IslandNotesFeature` 作为 SwiftUI 的统一用户意图入口、跨模块用例协调者和最高层测试 seam；把 SwiftData 事务与领域不变量集中到 `NoteWorkspace`，把 Live Activity 生命周期集中到 `LiveActivitySession`，把显示模式集中到 `AppearanceSettings`，并使用独立 `AppRouter` 管理 App 级 sheet 和 deep link。SwiftUI Views 负责声明式呈现、布局、系统环境和短暂本地交互；可复用视觉组件保持无状态。
 
-正式视觉以已确认 Web 原型的黑白主色、弱绿色挂起强调、大字号、圆角纸张表面、柔和层次和克制的 Apple 风格为基线，并原生适配浅色、深色、Dynamic Type、VoiceOver 与 Reduce Motion。App 不提供自定义主题，也不需要后端、账号、网络请求或 iCloud。
+实施采用增量迁移：先做保持行为不变的小范围职责抽取，再按 Design System、Workbench、Note Library、Settings、Live presentation、删除与反馈等纵向切片逐步完成必要重构和新版界面，每个切片都通过现有最高层功能测试、聚焦模块测试、UI/视觉验证和适当的真机验证后再继续。
 
 ## User Stories
 
-1. 作为首次打开 App 的普通用户，我希望直接看到一个空白且可输入的当前便签槽位，以便无需经过新手引导或创建流程就开始记录。
-2. 作为普通用户，我希望首页始终只有一个聚焦的当前便签槽位，以便注意力不会被多张便签列表分散。
-3. 作为普通用户，我希望当前便签本身始终是可编辑文本区域，以便无需在查看态与编辑态之间切换。
-4. 作为普通用户，我希望轻点当前便签即可调用系统键盘输入，以便使用熟悉的原生编辑体验。
-5. 作为普通用户，我希望编辑后的文字自动保存，以便不需要寻找或点击保存按钮。
-6. 作为普通用户，我希望离开 App、打开便签库或执行挂起前都不需要提交或完成操作，以便记录过程保持轻量。
-7. 作为普通用户，我希望输入中文、英文、数字和标点后内容原样保留，以便 App 不改写我的表达。
-8. 作为普通用户，我希望空格与手动换行原样保存，以便便签保持我输入时的视觉节奏。
-9. 作为普通用户，我希望家庭、肤色、ZWJ 等组合 Emoji 按一个用户感知字符处理并原样保存，以便字符限制符合我看到的内容。
-10. 作为普通用户，我希望以 `-`、`*` 或数字开头的文字仍被视为普通纯文字，以便 App 不擅自解析为 Markdown、列表或待办。
-11. 作为普通用户，我希望编辑器的回车键只插入换行，以便它不会被误当作保存、完成或提交按钮。
-12. 作为普通用户，我希望通过便签表面内的圆形进度了解容量使用情况，以便界面保持安静而仍能感知 240 字符限制。
-13. 作为普通用户，我希望平时不持续看到“当前字符数 / 240”的数字，以便当前便签仍是页面视觉焦点。
-14. 作为普通用户，我希望轻点圆形进度后临时看到已输入和剩余字符数，以便需要时获得精确信息。
-15. 作为 VoiceOver 用户，我希望圆形进度朗读已输入数、240 字符上限与剩余数，以便不依赖视觉圆环理解容量。
-16. 作为普通用户，我希望输入到 239 个用户感知字符时仍能再输入一个字符，以便完整使用允许容量。
-17. 作为普通用户，我希望第 240 个用户感知字符被正常接受并保存，以便边界行为准确。
-18. 作为普通用户，我希望达到 240 个字符后第 241 个新字符不进入便签，并收到“最多 240 个字符”的轻量提示，以便明确知道输入为何停止。
-19. 作为普通用户，我希望粘贴内容超过上限时只保留能容纳到 240 个字符的完整字符，以便不会截断一个组合 Emoji 或丢失已存在内容。
-20. 作为普通用户，我希望达到 240 个字符后仍能删除、选择和替换已有内容，以便可以继续修订便签。
-21. 作为普通用户，我希望字符限制判断只限制最终接受的用户感知字符，以便中文输入法的组合输入不会被错误拆断。
-22. 作为普通用户，我希望空内容或只有空白字符的当前便签不能挂起，以便系统展示不会出现无意义内容。
-23. 作为普通用户，我希望空内容或只有空白字符的当前便签不能放入便签库，以便便签库不积累空白记录。
-24. 作为普通用户，我希望空内容或只有空白字符的当前便签无需删除且删除操作不可用，以便空白槽位自然作为下一次输入入口。
-25. 作为普通用户，我希望空白状态下仍能打开便签库，以便可以恢复以前的旧便签。
-26. 作为普通用户，我希望输入至少一个非空白字符后挂起、入库和删除操作变为可用，以便操作状态与内容有效性一致。
-27. 作为普通用户，我希望点击“挂起”后只为当前便签启动一次 Live Activity 展示会话，以便系统展示与工作台内容保持同一焦点。
-28. 作为普通用户，我希望挂起成功后工作台明确显示“挂起中”并提供“取消挂起”，以便知道系统实际存在活跃展示会话。
-29. 作为普通用户，我希望同一时间最多只有一个属于本 App 的活跃 Live Activity，以便不会出现两条便签争夺系统展示。
-30. 作为普通用户，我希望已有活跃展示会话时不会重复创建、替换、重置或延长它，以便误触不会改变当前会话生命周期。
-31. 作为普通用户，我希望点击“取消挂起”后结束当前展示会话但完整保留当前便签，以便停止系统展示不等于删除内容。
-32. 作为普通用户，我希望挂起失败时当前便签保持不变、状态保持未挂起，并在按钮附近看到简洁错误，以便可以安全地再次手动尝试。
-33. 作为普通用户，我希望挂起期间仍能直接编辑当前便签，以便不需要先取消再重新挂起。
-34. 作为普通用户，我希望挂起期间的编辑先自动保存到本机，再在前台短暂停顿后同步到 Live Activity，以便输入流畅且系统展示尽量及时。
-35. 作为普通用户，我希望 Live Activity 更新失败时本机新内容仍然保留，并看到系统展示可能尚未同步的提示，以便知道数据安全但外部展示可能滞后。
-36. 作为普通用户，我希望更新失败后下一次编辑或相关用户操作可以再次尝试同步，但 App 不进行无限自动重试，以便错误可恢复且不会制造后台循环。
-37. 作为普通用户，我希望点击“放入便签库”后旧内容进入便签库，当前便签槽位立即补入新的空白当前便签，以便自然开始下一条记录。
-38. 作为普通用户，我希望入库后的新空白当前便签保持未挂起，以便系统不会自动展示未经确认的新内容。
-39. 作为普通用户，我希望挂起中的当前便签入库前先结束展示会话，以便入库后系统不会继续展示已不再是当前便签的内容。
-40. 作为普通用户，我希望可以随时从工作台进入便签库，以便浏览和恢复旧便签。
-41. 作为普通用户，我希望便签库只显示旧便签，以便当前便签继续由工作台独立承载。
-42. 作为普通用户，我希望便签库按最近放入便签库的时间倒序排列，以便刚入库的内容最容易找到。
-43. 作为普通用户，我希望便签库条目以保持原文字语义的摘要呈现，以便能辨认中文、英文、换行与 Emoji 内容。
-44. 作为普通用户，我希望点击便签库中的旧便签就立即恢复它，以便无需经过预览页、“设为当前”按钮或二次确认。
-45. 作为普通用户，我希望当前便签有有效内容时，点击旧便签会把原当前便签放到便签库顶部并把所选旧便签移入当前便签槽位，以便两条内容安全交换。
-46. 作为普通用户，我希望当前便签为空白时，点击旧便签只恢复旧便签而不把空白记录放入便签库，以便便签库保持干净。
-47. 作为普通用户，我希望交换前若原当前便签正在挂起则先结束展示会话，以便系统展示和当前便签永不分离。
-48. 作为普通用户，我希望交换得到的新当前便签保持未挂起，以便恢复旧内容不会自动公开到系统界面。
-49. 作为普通用户，我希望便签库中的旧便签不能直接编辑、挂起或删除，以便所有会改变内容或系统展示的动作都集中在当前便签工作台。
-50. 作为普通用户，我希望便签库为空时看到克制、清晰的空状态，以便知道可以返回当前便签继续输入。
-51. 作为普通用户，我希望删除当前便签前看到明确的不可恢复确认，以便避免误删本机唯一副本。
-52. 作为普通用户，我希望取消删除确认后当前便签与挂起状态完全不变，以便误触不会产生副作用。
-53. 作为普通用户，我希望确认删除后内容被移除且当前便签槽位补入新的空白便签，以便工作台始终可继续使用。
-54. 作为普通用户，我希望删除挂起中的当前便签前先结束展示会话，以便系统不会继续显示已删除内容。
-55. 作为普通用户，我希望结束展示会话失败且系统仍报告活动活跃时，入库、删除或交换不会继续，以便挂起便签不会与当前便签分离。
-56. 作为普通用户，我希望结束调用报错后 App 重新读取系统状态再更新界面，以便 App 不虚报“已取消挂起”。
-57. 作为普通用户，我希望紧凑态不显示便签正文，只显示可识别 App 或挂起状态的标记，以便日常灵动岛保持克制。
-58. 作为普通用户，我希望系统把本 App 活动切换为 minimal 时也只看到可识别标记，以便多个 Live Activities 并存时不泄露正文且仍可辨认来源。
-59. 作为普通用户，我希望长按系统展示进入展开态后看到当前便签正文，以便无需打开 App 即可快速查看。
-60. 作为普通用户，我希望展开态空间不足时正文可以自然换行并截断，以便界面遵守系统区域而不伪造滚动或全文能力。
-61. 作为普通用户，我希望锁屏展示读取与展开态相同的当前便签和相同内容状态，以便两处不会出现两个版本的正文。
-62. 作为普通用户，我希望锁屏展示可以使用与展开态不同的换行和截断位置，以便两套独立系统 presentation 都保持可读。
-63. 作为普通用户，我希望产品不承诺展开态或锁屏完整显示全部 240 个字符，以便系统实际空间变化不会造成错误预期。
-64. 作为普通用户，我希望 App 不主动隐藏、模糊或概括系统展示中的正文，以便在系统允许时直接看到自己挂起的文字。
-65. 作为注重隐私的用户，我希望锁屏正文的最终显示、redact、隐藏或移除服从我的系统设置，以便系统隐私选择优先于 App 的展示意图。
-66. 作为普通用户，我希望点击紧凑态、minimal、展开态或锁屏展示后打开当前便签工作台，以便快速回到编辑位置。
-67. 作为普通用户，我希望点击已经结束会话留下的旧系统入口时安全回到当前便签工作台，而不自动恢复、交换或挂起旧便签，以便过期 deep link 不改变数据。
-68. 作为普通用户，我希望一次挂起最多持续 8 小时且可能提前结束，以便产品行为符合 Live Activity 的实际系统能力。
-69. 作为普通用户，我希望展示会话达到上限、被移除、被禁用或被系统结束后当前便签回到未挂起且内容完整保留，以便系统生命周期不会影响本机数据。
-70. 作为普通用户，我希望正常展示结束时不被额外的“已到期”长期状态打扰，以便只需理解挂起和取消挂起。
-71. 作为普通用户，我希望展示结束后可以再次手动挂起同一当前便签，以便按需启动一段全新的展示会话。
-72. 作为普通用户，我希望 App 不保存永久挂起意图、不自动续挂，也不承诺一直显示到我取消，以便系统提前结束时产品不会误导我。
-73. 作为普通用户，我希望 App 每次启动或回到前台时与 ActivityKit 当前实际活动对账，以便按钮状态反映系统事实。
-74. 作为普通用户，我希望 App 重启后当前便签与便签库从 SwiftData 恢复，以便进程结束不会丢失内容。
-75. 作为普通用户，我希望 App 重启后若系统仍存在属于当前便签的活动则显示挂起中，以便恢复真实展示状态。
-76. 作为普通用户，我希望 App 重启后若原活动已不存在则收敛为未挂起，以便不会保留虚假的挂起状态。
-77. 作为普通用户，我希望发现不属于当前便签的本 App 孤立 Activity 时安全结束它，以便恢复“当前便签与挂起便签不能分离”的不变量。
-78. 作为普通用户，我希望设备重启后便签内容仍由 SwiftData 恢复，并在 App 再次运行时重新对账系统活动，以便数据安全不依赖 ActivityKit 的重启行为。
-79. 作为普通用户，我希望用户关闭 Live Activities、从锁屏移除活动或系统改变 presentation 后 App 依据活动是否仍活跃收敛状态，以便“岛上暂时不可见”不会被错误等同于“活动已结束”。
-80. 作为普通用户，我希望所有启动、更新、结束、重启与对账异常都不删除或损坏 SwiftData 内容，以便本机便签始终是可靠事实来源。
-81. 作为普通用户，我希望所有便签只保存在本机，以便无需账号、后端、网络请求或 iCloud 就能使用。
-82. 作为普通用户，我希望 App 自动适配系统浅色与深色模式，以便界面在不同外观下保持一致气质和可读性。
-83. 作为使用大字号的用户，我希望工作台、便签库、确认界面和状态反馈支持 Dynamic Type 并能合理重排，以便无需缩小系统字体使用 App。
-84. 作为 VoiceOver 用户，我希望当前便签、便签库条目、挂起状态、字符进度、禁用原因、错误提示和删除确认都有准确名称、值与提示，以便完成全部核心流程。
-85. 作为启用 Reduce Motion 的用户，我希望呼吸点、页面切换和反馈动效被移除或显著简化，以便状态变化不会造成不适。
-86. 作为色觉差异用户，我希望挂起、错误和危险状态不只依赖绿色或红色表达，以便通过文案、图标和控件状态同样理解含义。
-87. 作为开发验收人员，我希望在 SwiftUI Preview 中检查工作台、便签库、紧凑态、minimal、展开态和锁屏展示的代表状态，以便快速发现布局、浅深色与 Dynamic Type 问题。
-88. 作为开发验收人员，我希望在 iPhone Simulator 中验证 App、Widget Extension、deep link、浅色/深色与基本 ActivityKit 链路，以便确认目标集成能够构建和运行。
-89. 作为开发验收人员，我希望在带灵动岛的真实 iPhone 上验证实际灵动岛、锁屏、首次系统提示、用户禁用、App 强杀与隐私设置组合，以便不把模拟器或网页结果误当作系统保证。
-90. 作为开发验收人员，我希望用真实设备运行完整 8 小时生命周期并验证结束与可能的锁屏残留，以便确认长时行为符合当时系统版本。
-91. 作为开发验收人员，我希望验证设备重启前后的活动枚举、系统展示与 deep link 行为，以便记录 Apple 未明确保证的重启结果。
-92. 作为开发验收人员，我希望以 240 个中文、ASCII、简单 Emoji 和复杂组合字素分别检查最终 Codable/JSON 大小，以便确保静态与动态 Activity 数据合计不超过 4 KB。
-93. 作为开发验收人员，我希望测试 4 KB 检查失败时的启动与更新反馈，以便极端 Unicode 内容仍不会损坏本机数据或造成虚假状态。
+1. As a returning Island Notes user, I want the redesigned app to open with all of my existing notes intact, so that the redesign never costs me saved content.
+2. As a returning user, I want my existing current note to remain the current note after upgrading, so that the app does not silently change my work context.
+3. As a returning user, I want existing library notes, stable identifiers, content versions, and timestamps to survive the upgrade, so that historical ordering and Live Activity identity remain coherent.
+4. As a first-time user, I want the app to create exactly one blank current note, so that the Workbench is immediately usable without a separate creation flow.
+5. As a user, I want the app to repair a missing or invalid Workbench pointer without deleting valid notes, so that local persistence failures converge to a usable state.
+6. As a user, I want the redesigned app to start in the Workbench display state, so that saved content is presented clearly before I choose to edit it.
+7. As a user, I want an old saved body to become the new source text without conversion, so that migration does not rewrite my words.
+8. As a user with no previous appearance preference, I want the redesigned app to default to Automatic, so that its first appearance matches the system.
+9. As a user, I want the Workbench to remain the one canonical place for the current note, so that I never have to decide which note is actively being worked on.
+10. As a user, I want the Workbench to show rendered content by default, so that the note reads like the final presentation instead of a permanent text editor.
+11. As a user, I want to tap the current note to enter editing, so that the transition from reading to changing it is direct.
+12. As a user, I want editing to expose the exact pure source text, so that list prefixes, spaces, and line breaks remain under my control.
+13. As a user, I want only lines beginning with `- ` to render as round bullet rows, so that the supported formatting rule is predictable.
+14. As a user, I want Markdown-like syntax other than `- ` to remain ordinary text, so that the app does not invent formatting behavior that it does not support.
+15. As a user, I want typing to update only an in-memory editing draft, so that my saved note changes only when I explicitly finish editing.
+16. As a user, I want `Done` to commit my editing draft, so that there is one unambiguous save action.
+17. As a user, I want a successful `Done` action to return the note to rendered display, so that I can immediately inspect the committed result.
+18. As a user, I want a failed `Done` save to preserve my draft and keep me in editing, so that a storage error never discards my work.
+19. As a user, I want an uncommitted draft to remain while I briefly background and resume the still-running app, so that an ordinary interruption does not reset my edit.
+20. As a user, I want an uncommitted draft to remain while I open and close Note Library or Settings, so that inspecting another sheet does not implicitly save or discard it.
+21. As a user, I accept that an uncommitted draft may be lost when the app process terminates, so that the product does not imply persistence before `Done`.
+22. As a user, I want the committed source text to remain the only persistent content truth, so that rendered content and editing drafts cannot diverge into separate notes.
+23. As a user, I want whitespace, punctuation, line breaks, Chinese characters, English text, numbers, and composed Emoji to be preserved verbatim, so that the app does not normalize my note.
+24. As a user, I want actions requiring meaningful content to treat whitespace-only text as blank without trimming saved source text, so that eligibility rules do not rewrite my content.
+25. As a user, I want the Workbench to use the user-visible product name `Island Notes`, so that the interface follows the approved naming.
+26. As a user, I want every visible label, error, and accessibility string in this release to be English, so that the product language is consistent.
+27. As a user, I want editing focus, the system keyboard, and local menu expansion to behave like native transient UI state, so that ordinary SwiftUI interactions remain familiar.
+28. As a user, I want source text limited to 240 user-perceived characters, so that the note remains within the product's intended capacity.
+29. As a user, I want the 240-character rule to count Swift extended grapheme clusters rather than bytes or UTF code units, so that a composed Emoji counts as one perceived character.
+30. As a user, I want `- ` prefixes, spaces, punctuation, and line breaks included in the 240 count, so that the capacity reflects exactly what I typed.
+31. As a user, I want rendered bullet markers not to add to the count, so that presentation does not change source capacity.
+32. As a user, I want ordinary typing beyond 240 characters rejected without splitting a grapheme, so that the saved note remains valid.
+33. As a user, I want an over-limit paste to keep the longest complete prefix that fits, so that useful pasted content is retained predictably.
+34. As a user using an input method editor, I want marked text to remain composable until the composition is committed, so that the character limiter does not corrupt intermediate input.
+35. As a user, I want the character ring to reflect the draft while editing and committed source while displaying, so that its value matches the content currently in context.
+36. As a user, I want to tap the character ring and see `N used · M remaining`, so that I can understand both capacity values.
+37. As a user, I want the character detail to fade after two seconds and a repeated tap to restart that interval, so that the detail is available without permanently occupying space.
+38. As a user at the limit, I want the detail to show `240 used · 0 remaining`, so that the boundary is explicit.
+39. As a user, I want Workbench actions to be disabled for a blank current note, so that Go Live, Move to Note Library, and Delete Note cannot create meaningless operations.
+40. As a user, I want the More Menu to contain only Note Library and Settings, so that the top-level navigation remains focused.
+41. As a user, I want tapping outside the More Menu to dismiss it, so that it behaves like a lightweight native menu.
+42. As a user, I want Note Library to open as a sheet rather than a navigation push, so that the Workbench remains the persistent background context.
+43. As a user, I want Settings to open as a sheet rather than a navigation push, so that appearance changes remain a modal task.
+44. As a user, I want only one App-level sheet visible at a time, so that routing state cannot become ambiguous.
+45. As a user, I want both sheets to use the approved rounded modal surface, background dimming, drag indicator, centered title, and circular close control, so that they match the high-fidelity design.
+46. As a user, I want closing either sheet to return me to the same Workbench state, so that navigation does not mutate the current note or draft.
+47. As a user, I want Note Library to list only non-current notes, so that the unique current note remains conceptually separate.
+48. As a user, I want library notes ordered by their most recent library-entry time, newest first, so that the most recently moved or replaced note is easiest to recover.
+49. As a user, I want library timestamps displayed in fixed English 12-hour form using Today, Yesterday, a weekday, or a dated form with year for older entries, so that temporal context is concise and consistent.
+50. As a user, I want each library row to expose a distinct trailing replace button, so that replacement is deliberate rather than triggered by touching the row.
+51. As a VoiceOver user, I want the visual-only replace button named `Replace current note`, so that its destructive context is understandable.
+52. As a user, I want selecting the row itself to do nothing, so that scrolling or inspecting text cannot accidentally replace my current note.
+53. As a user, I want replacing from the library to make the selected saved note current, so that I can resume an earlier note.
+54. As a user with a nonblank committed current note, I want replacement to move that outgoing note to the top of the library, so that no committed content is lost.
+55. As a user with a blank committed current note, I want replacement to remove the blank record instead of adding it to the library, so that the library contains no meaningless blank entries.
+56. As a user, I want the replacement to be atomic, so that a failure cannot leave two current notes or lose either committed note.
+57. As a user, I want a successful replacement to close Note Library and return to Workbench, so that the newly current note is immediately visible.
+58. As a user, I want a failed replacement to remain in Note Library and report that it did not complete, so that the interface never presents false success.
+59. As a user replacing a note while editing, I want the replace button to remain available and immediately discard the uncommitted draft without saving or confirmation, so that the explicitly chosen library note takes precedence.
+60. As a user, I want Move to Note Library to place the committed current note at the top of the library and create a new blank current note, so that I can clear the Workbench without deleting the note.
+61. As a user, I want a successful move to report `Note moved to your library.`, so that the result is clear.
+62. As a user, I want a failed move to preserve the original data and avoid a false success message, so that local persistence remains trustworthy.
+63. As a user, I want Delete Note to be unavailable for a blank current note, so that deletion only represents a meaningful permanent action.
+64. As a user, I want Delete Note to open the approved bottom confirmation dialog with `Delete this note?`, `Cancel`, and `Delete Note`, so that irreversible deletion is explicit.
+65. As a user, I want Cancel to close the dialog without changing data, so that I can safely back out.
+66. As a user, I want confirming deletion to permanently remove the committed current note and create one blank current note, so that the Workbench remains valid afterward.
+67. As a user, I want a failed delete transaction to retain the note and report failure, so that storage errors cannot silently erase or replace content.
+68. As a user, I want Settings to include an Appearance section with Automatic, Light, and Dark, so that I can control the App's visual mode.
+69. As a user, I want Automatic to track the current system appearance live, so that the App follows device preferences.
+70. As a user, I want Light to keep App-owned screens light even when the system is dark, so that I can choose a consistently light App.
+71. As a user, I want Dark to keep App-owned screens dark even when the system is light, so that I can choose a consistently dark App.
+72. As a user, I want my display mode to persist across relaunches, so that I do not need to reselect it.
+73. As a user, I want display mode to affect Workbench, Note Library, Settings, More Menu, feedback, and the custom delete dialog, so that the App-owned interface is consistent.
+74. As a user, I want Dynamic Island and Lock Screen appearance to remain controlled by iOS, so that App settings do not claim control over system-owned surfaces.
+75. As a user, I want Feedback, Website, and About rows to look pressable and show press feedback, so that Settings matches the approved prototype.
+76. As a user, I expect Feedback, Website, and About to perform no action in this release, so that placeholder behavior matches the confirmed scope.
+77. As a user, I want no Privacy row in this release, so that the interface does not imply an unconfirmed destination.
+78. As a user with a nonblank committed note, I want to tap `Go Live` to request a Live Activity, so that the note can appear on system surfaces.
+79. As a user, I want `Go Live` to change to green `Live` only after ActivityKit confirms one active activity for the current note, so that the UI reflects system truth rather than an optimistic flag.
+80. As a user, I want to tap `Live` to stop the current Live session while retaining the note, so that ending system display never deletes content.
+81. As a user, I want a successfully stopped session to return the control to `Go Live`, so that I can explicitly start another session later.
+82. As a user, I want a newly blank, moved, deleted, or library-replaced current note not to start Live automatically, so that every new session requires explicit intent.
+83. As a user, I want a successful `Done` commit during a Live session to update the same Activity rather than start another one, so that the system presentation follows the committed note.
+84. As a user, I want Live updates to use a short cancellable debounce and send the latest committed value, so that repeated commits do not create stale system updates.
+85. As a user, I want a draft that has not been committed with `Done` to remain absent from Live Activity, so that system surfaces never show unsaved content.
+86. As a user, I want every Live start or update to validate the final encoded attributes and content state against the 4 KB ActivityKit limit, so that oversized Unicode payloads fail safely.
+87. As a user, I want a Live start failure to keep the product non-Live and provide retryable English feedback, so that the UI never claims a session exists when it does not.
+88. As a user, I want a Live update failure to preserve the committed SwiftData content, keep the actual system state, and warn that system display may not be synchronized, so that local data remains authoritative.
+89. As a user, I want a Live stop failure to re-enumerate ActivityKit and remain `Live` when the activity is still active, so that I can retry without being misled.
+90. As a user, I want Move, Replace, and Delete to end the current Live session and confirm its absence before changing note identity, so that the system never displays a note that is no longer current.
+91. As a user, I want a failed Live end barrier to cancel the content transaction and preserve all notes, so that current-note and Live-session identity cannot diverge.
+92. As a user, I want the app to reconcile ActivityKit at startup, foreground entry, and Live deep link handling, so that external system changes converge to accurate UI state.
+93. As a user, I want reconciliation to keep at most one valid activity for the current note and attempt to end orphaned or duplicate activities, so that the one-session invariant is restored.
+94. As a user, I want unresolved duplicate or orphan activity cleanup to block a new `Go Live` request and show retryable feedback, so that the app does not add more inconsistent sessions.
+95. As a user, I want a session that expires, is removed, is disabled, or is ended by iOS to converge to non-Live while preserving the complete note, so that system lifecycle changes never become data loss.
+96. As a user, I want a Live session to request a maximum lifetime of eight hours, allow iOS to end it earlier, and never renew automatically, so that temporary display remains an explicit finite session.
+97. As a user, I want Dynamic Island Compact to show only the brand note icon on the leading side, with no trailing dot, status, or text, so that the compact presentation matches the prototype.
+98. As a user, I want Dynamic Island Minimal to show only the brand note icon, so that the app remains identifiable when iOS selects the smallest presentation.
+99. As a user, I want Dynamic Island Expanded to show the committed note with the same bullet semantics as Workbench, so that supported formatting remains consistent.
+100. As a user, I want Lock Screen presentation to show the same committed source and bullet semantics while using its own layout and truncation, so that system space is used appropriately.
+101. As a user, I want Compact, Minimal, Expanded, and Lock Screen taps to open Workbench, so that every system entry returns to the current note.
+102. As a user, I want a historical or stale note identifier in a deep link ignored, so that deep links never restore, swap, delete, or restart a note automatically.
+103. As a user, I want the App-owned interface to match the prototype's semantic colors, SF font roles, spacing scale, corner radii, materials, shadows, sizing, hierarchy, and component states, so that the redesign is implemented as a system rather than an approximation.
+104. As a user, I want App-owned icons to use the approved Lucide 2px stroke visual language, so that iconography remains consistent across Workbench, Library, Settings, menus, and dialogs.
+105. As a user, I want system-owned keyboard, sheet behavior, ActivityKit hosting, and platform gestures to remain native, so that the app respects iOS behavior.
+106. As a user, I want valid Live status to be the only use of the approved green state color, so that green has one reliable meaning.
+107. As a user, I want touch targets to be at least 44 points and states not to rely only on color, so that controls remain operable and understandable.
+108. As a Dynamic Type user, I want App layouts to adapt at default and maximum accessibility sizes without hiding essential content or actions, so that the complete flow remains usable.
+109. As a VoiceOver user, I want English names, values, states, focus order, and timely error announcements for the complete core flow, so that the app is operable without sight.
+110. As a Reduce Motion user, I want nonessential transitions and state animations removed or significantly simplified, so that the interface remains comfortable.
+111. As a user, I want ordinary transitions to follow the approved 160–210 ms motion range when Reduce Motion is off, so that feedback feels coherent with the Design System.
+112. As a user, I want native adaptation for safe areas, keyboard, Dynamic Type, VoiceOver, system sheets, and ActivityKit constraints, so that strict visual fidelity does not break platform usability.
+113. As a developer, I want representative Light and Dark previews for every key page and component state, so that visual regressions are discoverable before device testing.
+114. As a developer, I want the refactor to preserve one highest-level feature test seam, so that behavior remains protected while responsibilities move internally.
+115. As a developer, I want feature tests to drive public user actions using an in-memory SwiftData container, a fake Live Activity controller, isolated appearance storage, and a real AppRouter, so that product flows can be verified without implementation coupling.
+116. As a developer, I want tests to assert observable state, persisted records, and fake system activity results, so that they remain stable through internal restructuring.
+117. As a developer, I want changed old tests rewritten only where a confirmed new behavior replaces them, so that accidental behavior regressions remain visible.
+118. As a developer, I want focused tests for NoteWorkspace, LiveActivitySession, and AppearanceSettings in addition to combination tests, so that deep-module edge cases are localized without losing end-to-end confidence.
+119. As a developer, I want each vertical slice to keep the test suite green before the next slice begins, so that the redesign is incremental rather than a big-bang rewrite.
+120. As a release verifier, I want the full Feature and UI suite run on an iPhone 16 Pro with the current iOS 26.x simulator, so that the primary target has repeatable automated evidence.
+121. As a release verifier, I want the app built, launched, and exercised through its core flow on a minimum-supported iOS 17.x Dynamic Island simulator, so that deployment compatibility remains real.
+122. As a release verifier, I want system appearance crossed with Automatic, forced Light, and forced Dark, including relaunch persistence, so that appearance behavior is complete.
+123. As a release verifier, I want visual and functional checks at default and maximum Dynamic Type, with VoiceOver and Reduce Motion, so that accessibility is part of acceptance rather than a follow-up.
+124. As a release verifier, I want at least one current iOS 26.x Dynamic Island iPhone used for Live start, update, stop, reconciliation, presentation, lifecycle, and privacy checks, so that simulator behavior is not mistaken for ActivityKit proof.
+125. As a release verifier, I want a second Dynamic Island width tested on a real device when available, or explicitly labeled simulator evidence otherwise, so that width-specific results remain honest.
 
 ## Implementation Decisions
 
-1. **决定分类与优先级。** 本节用“已确认产品决定”描述用户可观察行为，用“Apple 系统约束”描述 App 不能覆盖的能力边界，用“工程实施选择”描述为落实前两者而固定的架构，用“必须真机验证”描述不能由代码替身、网页原型或模拟器证明的行为。发生冲突时，顺序为：已关闭 Wayfinder 产品决策、ActivityKit 系统研究、已确认 Web 原型的视觉与空间基线、过时设计与实施计划。
+1. **Authority and terminology.** This specification is the consolidated implementation contract. It derives first from the confirmed redesign decisions and ADRs, then from the latest high-fidelity PNG, then from still-valid existing code and tests, then from unaffected portions of the previous specification. Previous prototypes, plans, audits, and deleted assets are historical only. Product and implementation language must use the project glossary: `Island Notes`, Workbench, current note, source text, editing draft, rendered content, Note Library, Live session, and the confirmed module names.
 
-2. **平台与技术栈。**
+2. **Platform and existing technical foundation.** Continue as a native iPhone app using SwiftUI, SwiftData, ActivityKit, WidgetKit, and Observation, with iOS 17 as the minimum deployment target. The supported product target remains Dynamic Island iPhones. The app remains local-only with no account, backend, network dependency, or iCloud synchronization.
 
-   - 【已确认产品决定】产品是只在本机保存数据的原生 iPhone App，只正式支持带灵动岛的 iPhone。
-   - 【工程实施选择】使用 SwiftUI、SwiftData、ActivityKit 与 WidgetKit；因为使用 SwiftData，最低部署目标为 iOS 17。
-   - 【已确认产品决定】不建立后端、账号、网络请求或 iCloud 能力；Widget Extension 不自行联网。
-   - 【Apple 系统约束】带灵动岛设备清单会随硬件与系统文档变化，发布前须按当时 Apple 设备清单复核，不能用“某代及以后”简单替代。
+3. **Architectural objective.** Do not treat “MVVM” as the goal. The goal is to isolate state ownership, persistence invariants, ActivityKit lifecycle, navigation, appearance, and presentation so that each has a small public interface backed by complete behavior. Use Feature composition with deep modules, retain the highest-level behavior seam, and avoid pass-through abstractions.
 
-3. **功能模块与职责。**
+4. **Composition and lifetime ownership.** The App root creates and retains the SwiftData container, production ActivityKit adapter, `NoteWorkspace`, `LiveActivitySession`, `AppearanceSettings`, `AppRouter`, and `IslandNotesFeature`. It connects app lifecycle and incoming URLs to the feature and router. Long-lived objects are not recreated by page rendering.
 
-   - 【工程实施选择】App 壳层负责启动、前后台生命周期、浅深色跟随、deep link 路由和依赖装配。
-   - 【工程实施选择】当前便签工作台模块负责纯文字编辑、自动保存、字符限制、字符进度、挂起/取消、入库与删除确认。
-   - 【工程实施选择】便签库模块负责旧便签的只读列表、空状态、最近入库排序和点击交换；它不暴露编辑、挂起或删除命令。
-   - 【工程实施选择】持久化模块负责 SwiftData 容器、唯一当前便签槽位、便签库记录和原子状态转换。
-   - 【工程实施选择】Live Activity controller 是 ActivityKit 的唯一适配边界，对上层暴露“读取本 App 活动、启动、更新、结束、重新读取状态”的异步能力，并可在测试中整体替换。
-   - 【工程实施选择】展示会话协调模块负责串联持久化、controller、前台编辑防抖、错误反馈和前台对账；视图不直接调用 ActivityKit。
-   - 【工程实施选择】共享 Activity 数据契约由 App 与 Widget Extension 共同使用；Widget Extension 只渲染输入状态，不读取或修改 SwiftData。
-   - 【工程实施选择】Live Activity 展示模块分别实现紧凑态 leading/trailing、minimal、展开态和锁屏展示，并为所有系统入口配置回到当前便签工作台的 deep link。
+5. **SwiftUI View responsibilities.** SwiftUI Views declare layout, accessibility, environment adaptation, and bindings to observable state. Workbench may own only short-lived focus and More Menu expansion; sheets may own native dismissal mechanics. Views send public user intents to the feature, router, or appearance module and do not execute SwiftData transactions or call ActivityKit directly. More Menu, note card, character ring, buttons, library rows, settings rows, hints, Live indicators, and the delete dialog are stateless value/action components. No `WorkbenchViewModel`, `NoteLibraryViewModel`, `SettingsViewModel`, or per-control ViewModel is introduced in this scope.
 
-4. **SwiftData 数据模型与长期事实来源。**
+6. **`IslandNotesFeature` responsibility.** Keep one `@MainActor @Observable` feature as the Workbench-facing behavior facade, owner of editing-session presentation state, delete-confirmation presentation state, user feedback, and cross-module use-case sequencing. Its public interface expresses user actions such as bootstrap, begin editing, stage text, commit with `Done`, reveal character details, move, replace, request/cancel/confirm deletion, start/stop Live, reconcile, and handle relevant lifecycle events. It exposes user-observable projections rather than underlying SwiftData models or ActivityKit objects.
 
-   - 【已确认产品决定】SwiftData 是当前便签内容和便签库的长期事实来源。
-   - 【工程实施选择】每条便签持有稳定标识、原样纯文字内容、创建时间、最后修改时间和可选的最近入库时间；不包含标题、列表项、完成状态、排序项或长期挂起布尔字段。
-   - 【工程实施选择】持久化一个工作台元数据记录，指向唯一的当前便签；其余具有入库时间的便签属于便签库。领域层必须维护“恰好一个有效当前便签”的不变量。
-   - 【工程实施选择】首次启动若不存在工作台数据，则以一个事务创建工作台元数据和空白当前便签。
-   - 【工程实施选择】入库事务把原当前便签写入当前时间作为最近入库时间，再创建新的空白当前便签并更新工作台指针。
-   - 【工程实施选择】删除事务删除原当前便签，再创建新的空白当前便签并更新工作台指针。
-   - 【工程实施选择】交换事务把所选旧便签移出便签库并设为当前；若原当前便签包含非空白内容，则更新其最近入库时间并放到库顶；若原当前便签为空白，则不入库并移除该空白记录。整个交换必须原子完成。
-   - 【工程实施选择】便签库查询按最近入库时间降序；排序相同时使用稳定标识或创建时间提供确定顺序，但不向用户提供手动排序。
+7. **`NoteWorkspace` responsibility and interface.** Introduce a deep module that owns SwiftData access, bootstrap/repair, the unique-current-note invariant, committed source text, library projection, and atomic commit/move/replace/delete transactions. Its public interface operates in domain terms and returns stable snapshots or explicit failures. It does not know ActivityKit, `LiveActivityControlling`, Live status, editing drafts, App routing, or visual presentation. SwiftData has one real persistence adapter, so do not add a `RepositoryProtocol`.
 
-5. **纯文字与 240 个用户感知字符。**
+8. **`LiveActivitySession` responsibility and interface.** Introduce a deep module that owns Activity enumeration, start, update debounce, flush, stop, end barrier, duplicate/orphan cleanup, and reconciliation. It derives Live state from actual active ActivityKit sessions and exposes a small session state plus outcome/error interface to the feature. It does not mutate SwiftData current-note identity or own App navigation.
 
-   - 【已确认产品决定】当前便签只有一段最多 240 个用户感知字符的纯文字，不区分标题与正文。
-   - 【工程实施选择】字符计数和裁剪按 Swift 字符/扩展字素簇语义执行；不得按 UTF-8 字节、Unicode scalar 或 UTF-16 code unit 截断。
-   - 【工程实施选择】只有在文本包含至少一个非 Unicode 空白字符时，才视为可挂起、入库或删除；此判断只决定操作可用性，不得 trim、折叠或改写实际保存文本。
-   - 【工程实施选择】每次编辑接受的最终值立即更新可观察状态并自动保存到 SwiftData。Live Activity 更新可以防抖，但本地保存不能依赖防抖完成。
-   - 【工程实施选择】普通插入到达 240 后拒绝新增字符；超限粘贴保留从粘贴内容开头起能够完整容纳的字符；输入法 marked text 必须等组合结果确定后应用限制，避免拆分组合字符。
-   - 【工程实施选择】用户文字按原值进入 SwiftData 与 Activity 内容状态；不得解析 Markdown、生成项目符号、重排数字、规范化空格或替换 Emoji。
-   - 【工程实施选择】若 SwiftData 保存失败，编辑器保留当前会话中的用户文字并显示可恢复反馈；不得用未保存的旧快照覆盖编辑器，也不得把旧内容误更新到 Live Activity。
+9. **`LiveActivityControlling` seam.** Preserve the existing seam because it has both a real ActivityKit adapter and a test fake. It continues to expose reading the app's activities, requesting one activity, updating a specific activity, and ending a specific activity. Do not broaden it with UI, persistence, retry policy, or feature state.
 
-6. **当前便签工作台和便签库页面。**
+10. **`AppearanceSettings` responsibility and interface.** Introduce an independently observable module for the three-value display mode and its persistence. It exposes Automatic, Light, and Dark, applies the corresponding App-scoped color-scheme behavior, and defaults existing users to Automatic. It owns neither general Settings navigation nor note data.
 
-   - 【已确认产品决定】首页只关注当前便签；当前便签表面就是编辑器，不存在查看态、编辑按钮、保存按钮、新建按钮或完成按钮。
-   - 【工程实施选择】工作台采用已确认原型的空间层级：克制的顶部导航、大面积圆角纸张表面、纸张内右下角字符圆环，以及底部“放入便签库 / 挂起或取消挂起 / 删除”三点操作结构。
-   - 【工程实施选择】便签库入口在顶部导航中始终可达并与“放入便签库”动作分离；不保留只有设置项才有意义的更多菜单。
-   - 【工程实施选择】便签库使用单列只读列表；每行显示保持纯文字语义的最多两行摘要和低强调的入库时间，点击整行立即交换。行内不出现编辑、挂起、删除或二次“恢复”按钮。
-   - 【工程实施选择】删除使用原生确认界面，文案必须说明删除后无法恢复；挂起中的便签还应说明确认操作会结束展示会话。
-   - 【已确认产品决定】空白或只有空白字符时，挂起、入库与删除是真正 disabled；文本编辑器和便签库入口仍然可用。
+11. **`AppRouter` responsibility and interface.** Introduce an independently observable router with only three App-level destinations: Workbench as the base, Note Library sheet, and Settings sheet. It presents and dismisses either sheet, enforces at most one sheet, and routes all valid Live Activity deep links back to Workbench. It does not own More Menu state, editing state, delete confirmation, errors, current-note data, or Live lifecycle.
 
-7. **视觉、外观与无障碍。**
+12. **Cross-module transaction ordering.** For Move, Replace, and Delete, the feature first asks `LiveActivitySession` to complete and verify the end barrier for the current note. Only after the session is confirmed absent may it invoke the corresponding `NoteWorkspace` transaction. If the barrier fails, no content transaction occurs. If the barrier succeeds but the SwiftData transaction fails, committed note data remains unchanged, the feature reflects non-Live system truth, and an English retryable error is shown.
 
-   - 【已确认产品决定】视觉基线为黑白主色、弱绿色挂起强调、大字号、圆角纸张表面、柔和层次和克制的 Apple 风格。
-   - 【工程实施选择】使用系统字体、SF Symbols、语义颜色、系统材料与原生安全区；浅色以近白背景和白色纸张表面为主，深色以黑色背景和深灰表面为主，不引入蓝紫渐变、暖黄色纸张或彩色图标组。
-   - 【工程实施选择】弱绿色只辅助表达挂起中，危险确认使用系统红色；状态同时通过文案、图标、按钮标签或辅助值表达，不能只依赖颜色。
-   - 【已确认产品决定】App 跟随系统浅色/深色、Dynamic Type、VoiceOver 与 Reduce Motion，不提供用户自定义主题、颜色、字体或字号。
-   - 【工程实施选择】Dynamic Type 放大时优先让操作区纵向重排、文本换行并保持最小触控尺寸，不允许通过固定高度裁掉 App 内关键操作。Reduce Motion 下取消呼吸动画并把非必要转场降为无动画或淡入淡出。
-   - 【工程实施选择】当前便签编辑器、字符圆环、全部动作、禁用原因、错误反馈、便签库行、空状态和删除确认都提供准确的无障碍名称、值、状态与提示；焦点顺序遵循视觉与任务顺序。
+13. **Data compatibility.** Preserve the existing SwiftData records and logical schema: stable note identifier, body/source text, content version, creation and modification times, library-entry time, and the Workbench pointer. Do not reset or replace the store. Existing body values become source text directly. Existing records first appear in display state. Any schema evolution must use a migration compatible with existing stores and be covered by upgrade tests.
 
-8. **Live Activity 数据契约。**
+14. **Current-note invariant.** At every committed boundary, exactly one valid current note exists and all other eligible notes are in Note Library. Bootstrap repairs a missing/invalid pointer without deleting valid content. Blank replacement records never enter the library. Transactions preserve deterministic reverse library ordering.
 
-   - 【工程实施选择】静态 attributes 只承载稳定且必要的信息，至少包含当前便签稳定标识；动态 Content State 承载需要随编辑更新的原样正文和必要的内容版本信息。
-   - 【已确认产品决定】展开态与锁屏展示读取同一 Content State，不建立两份独立正文或不同隐私版本。
-   - 【Apple 系统约束】每个 Live Activity 的静态与动态数据合计不得超过 4 KB；240 个用户感知字符本身不能保证任意 Unicode 内容一定满足该限制。
-   - 【工程实施选择】每次启动与更新前都以最终 Codable/JSON 表达执行总大小检查；字段设计保持最小，测试覆盖中文、ASCII、简单 Emoji 和复杂组合字素。
-   - 【工程实施选择】启动前大小检查失败按启动失败处理，保持未挂起并给出可重试反馈；更新前大小检查失败按更新失败处理，保留 SwiftData 新内容、保持系统实际活动状态，并提示系统展示可能尚未同步。
+15. **Editing state machine.** Display state shows rendered committed content. Beginning editing copies source text into an in-memory draft. Character limiting applies to that draft. Typing, opening sheets, closing sheets, or ordinary backgrounding does not write SwiftData or Live Activity. `Done` is the sole normal commit action. Save success updates the current note and content version, schedules a Live update when applicable, clears editing state, and shows rendered content. Save failure retains draft and editing state. Process termination may discard the draft. Library Replace is the explicit exception and silently discards any draft before replacing the current note.
 
-9. **展示会话状态模型。**
+16. **Source text and rendering.** Source text is verbatim truth. Split it by source lines for presentation; only a line whose first two characters are hyphen plus space is a list line and renders with a round bullet. The stored prefix remains unchanged and counts toward capacity. All other Markdown syntax remains literal. Workbench display, Dynamic Island Expanded, and Lock Screen share these semantics, but each surface owns its layout and truncation.
 
-   - 【已确认产品决定】长期产品状态只有“未挂起”和“挂起中”；不建立“已到期”、永久挂起意图或自动续挂状态。
-   - 【Apple 系统约束】ActivityKit 当前实际存在且仍活跃的本 App 活动，是是否挂起中的系统事实来源；Dynamic Island 当前是否可见不是活动是否活跃的可靠判断。
-   - 【工程实施选择】当存在且只存在一个属于当前便签的活跃 Activity 时，当前便签为挂起中；不存在活跃 Activity 时为未挂起；发现其他组合先进入短暂对账过程，不把不一致作为长期用户状态。
-   - 【工程实施选择】不得用 SwiftData 中持久化的布尔字段单独判定挂起。可以保存诊断或关联所需的非权威标识，但每次恢复都必须以 ActivityKit 枚举结果重新确认。
-   - 【已确认产品决定】同一时间最多存在一个属于本 App 的活跃 Live Activity，且挂起便签必须就是当前便签。
-   - 【已确认产品决定】一次挂起启动一段最长 8 小时且可能提前结束的展示会话；结束后当前便签内容和身份不变，状态统一回到未挂起。
-   - 【已确认产品决定】新恢复、新补位或交换得到的当前便签不会自动挂起；用户只能在未挂起时显式发起一段新会话。
+17. **Character limiting and input methods.** Limit source/draft input to 240 Swift `Character` values. Never truncate an extended grapheme cluster. Delay final limiting while marked text is active, then apply it to the committed composition. Reject ordinary overflow and retain the longest whole-character prefix of an over-limit paste. Count the draft in editing state and committed source in display state.
 
-10. **挂起、取消与编辑同步。**
+18. **Character detail behavior.** Tapping the ring presents fixed English detail in the form `N used · M remaining` for two seconds. A repeated tap restarts the timer. At capacity it reads `240 used · 0 remaining`. The ring and transient text use the prototype's defined normal, active, and limit states and provide an accessibility value.
 
-    - 【工程实施选择】挂起流程依次执行：验证非空白与 240 字符规则、编码后 4 KB 检查、读取并清理本 App 不一致活动、向 ActivityKit 发起 request、再次读取实际状态并更新 UI。只有系统实际存在属于当前便签的活跃 Activity 才显示挂起中。
-    - 【工程实施选择】启动失败时不修改当前便签、不创建持久挂起状态，在挂起按钮附近给出简洁错误，并允许用户再次手动尝试。
-    - 【工程实施选择】挂起中编辑先保存 SwiftData；在 App 前台使用可取消的短防抖任务提交最新内容，连续输入只需要把最终已保存值更新到同一展示会话。
-    - 【Apple 系统约束】App 进入后台或被强杀后不保证继续获得本地更新执行时间，因此防抖不能被表述为后台持续同步承诺。
-    - 【工程实施选择】更新失败时若 Activity 仍活跃，UI 保持挂起中并显示“系统展示可能尚未同步”一类反馈；下一次编辑、回前台对账或明确用户操作可以再尝试，但不启动无限计时重试。
-    - 【工程实施选择】取消挂起调用结束后必须重新枚举系统活动。仅当目标 Activity 已不再活跃时才显示未挂起；若仍活跃，则保留挂起中、显示失败反馈并允许再次尝试。
-    - 【已确认产品决定】会话结束时产品意图同时结束 Dynamic Island 与锁屏展示，不主动利用锁屏尾部；工程上对 App 主动结束使用立即移除意图，但系统仍可能保留已结束内容，残留不构成挂起中。
+19. **Actionable-content rule.** Go Live, Move to Note Library, and Delete Note require at least one non-whitespace Unicode scalar. This rule controls availability only; it never trims, normalizes, or rewrites source text.
 
-11. **入库、删除与交换前的结束屏障。**
+20. **Note Library behavior.** Present Note Library as the approved sheet. Query non-current notes ordered by descending most-recent library-entry time with a deterministic tie-breaker. Display fixed English 12-hour timestamps: `Today · h:mm a`, `Yesterday · h:mm a`, weekday plus time for the recent weekly form, and abbreviated month/day/year plus time for older entries. The row itself does not replace. The trailing circular Lucide-style action has the accessibility name `Replace current note`.
 
-    - 【已确认产品决定】当前便签挂起中时，入库、确认删除或交换前必须先结束展示会话。
-    - 【工程实施选择】这三类动作共享一个结束屏障：请求结束目标 Activity，重新枚举系统状态；仅在确认目标已不活跃后，才执行对应 SwiftData 事务。
-    - 【工程实施选择】若结束请求抛错但重新枚举显示目标已经结束，可以继续内容事务；若目标仍活跃，则中止入库、删除或交换，原当前便签、便签库和工作台指针全部保持不变，并给出可重试反馈。
-    - 【工程实施选择】内容事务失败时不得让 Activity 与当前便签分离；在结束屏障已成功但 SwiftData 事务失败的场景，当前便签仍保持原内容与原槽位、UI 显示未挂起并提示操作未完成，用户可重新挂起或重试内容操作。
+21. **Replace transaction.** Replacing makes the selected library note current. A nonblank committed outgoing current note receives the current library-entry time and moves to the top; a blank outgoing record is deleted. The entire data change is atomic. A successful replacement dismisses the sheet; a failure keeps it open and reports no false success. Replacement is available during editing and discards the draft without saving or confirming.
 
-12. **启动、回前台与系统状态对账。**
+22. **Move transaction.** Move applies only to actionable committed content, performs the end barrier first, assigns the outgoing current note a new library-entry time, creates one blank current note, and changes the Workbench pointer atomically. Success reports `Note moved to your library.`; failure preserves data and reports the incomplete operation.
 
-    - 【工程实施选择】App 启动和每次回到前台时枚举本 App 的 Activity，并读取 SwiftData 当前便签后执行一次幂等对账。
-    - 【工程实施选择】若存在属于当前便签的唯一活跃 Activity，采用系统实际状态并显示挂起中。
-    - 【工程实施选择】若没有属于当前便签的活跃 Activity，收敛为未挂起；即使系统锁屏残留已结束内容，也不建立第三状态。
-    - 【工程实施选择】若发现不属于当前便签的本 App 孤立 Activity，安全结束并重新读取；结束失败且仍活跃时不得自动交换当前便签，也不得虚报完成，应显示简洁恢复反馈并在下次前台或用户动作时再对账。
-    - 【工程实施选择】若异常历史导致多个本 App 活动并存，保留至多一个属于当前便签的有效活动，并尝试结束其余活动；在清理完成前不允许创建新的展示会话。
-    - 【已确认产品决定】系统达到 8 小时上限、用户移除、用户禁用或系统结束后，只要实际 Activity 不再活跃，统一收敛为未挂起且完整保留便签。
+23. **Delete transaction and confirmation.** Delete applies only to actionable committed content and uses the custom bottom dialog defined by the prototype, not the prior native alert. The strings are `Delete this note?`, `Cancel`, and `Delete Note`. Confirmation performs the end barrier, permanently deletes the current record, creates one blank current note, and updates the pointer atomically. Cancel changes nothing; failure retains the note and keeps the system/data state truthful.
 
-13. **Live Activity presentation 与 deep link。**
+24. **Menu and sheet presentation.** More Menu contains only Note Library and Settings and dismisses on an outside tap. Both destinations use the prototype's rounded sheet surface with background context/dimming, drag indicator, centered title, and circular close button. Sheet presentation does not commit or cancel editing.
 
-    - 【已确认产品决定】紧凑态 leading/trailing 和 minimal 不显示正文，只显示单色 App/便签标记与低饱和挂起状态提示；minimal 不能省略，因为系统可在多活动并存时选择它。
-    - 【已确认产品决定】展开态显示同一当前便签正文，不提供编辑、完成、取消挂起、删除、切换或其他快捷操作，也不使用滚动容器伪造无限空间。
-    - 【已确认产品决定】锁屏展示与展开态使用同一内容状态和相同语义顺序，但两套 presentation 分别换行、限制行数和截断；不要求相同排版、相同截断位置或全文可见。
-    - 【Apple 系统约束】展开态和锁屏展示受系统提供的尺寸、Dynamic Type、设备宽度、隐私与 presentation 选择约束，网页模拟和 SwiftUI Preview 都不能证明真实可见字符数。
-    - 【工程实施选择】截断使用原生文本布局与明确的行数/空间约束，不对原文增加 Markdown 项目符号，也不显示“剩余 N 字”来暗示系统有固定字符容量。
-    - 【工程实施选择】紧凑态两侧、minimal、展开态和锁屏展示都指向同一工作台 deep link。路由只打开当前便签工作台并触发对账；即使携带的历史便签标识已失效，也不得自动从便签库恢复、交换或重新挂起。
+25. **Settings and display mode.** Automatic follows system changes; Light and Dark force only App-owned surfaces. Persist the selection across launches. Apply it to Workbench, sheets, More Menu, feedback, and custom dialogs, but never claim control over ActivityKit-hosted Dynamic Island or Lock Screen appearance.
 
-14. **隐私边界。**
+26. **Settings placeholders.** Feedback, Website, and About appear and provide visual press feedback but perform no action, navigation, message, or accessibility “not available” hint. Privacy does not appear. This is a confirmed scope exception and must not be represented as functional support content.
 
-    - 【已确认产品决定】产品不主动隐藏、模糊或概括正文，展开态与锁屏展示都使用同一原样内容状态。
-    - 【Apple 系统约束】用户可以禁用 Live Activities、限制锁屏访问，系统也可能根据设置与隐私行为 redact、隐藏或移除内容；App 不能承诺覆盖最终系统可见结果。
-    - 【必须真机验证】锁屏访问设置、Always-On、锁定/解锁状态以及系统 redaction 的实际组合表现必须记录在发布验收结果中，不能从 Preview 或模拟器外推。
+27. **Product language and naming.** User-facing product name is `Island Notes`; internal modules and Swift identifiers may remain `IslandNotes`. All visible UI, errors, timestamps, accessibility text, and test-facing product strings are English for this release. Code may be organized for future localization, but no second localization is built or accepted.
 
-15. **错误反馈原则。**
+28. **Design System as implementation contract.** Centralize the prototype's semantic color roles, SF font roles, 4/8/16/24/32 spacing scale, 14/22/34/pill corner radii, elevation/material/shadow roles, minimum 44-point targets, component states, and 160–210 ms motion. Green is reserved for a valid Live state. Do not scatter approximate literals across business views. These tokens and styles belong to UI implementation, not ViewModels or domain modules.
 
-    - 【工程实施选择】错误反馈靠近触发动作、文案简洁、可被 VoiceOver 朗读，并区分“挂起未开始”“系统展示可能未同步”“取消/结束尚未完成”“内容操作未完成”四类用户可行动结果。
-    - 【工程实施选择】错误不建立新的长期领域状态；操作结束后仍以 SwiftData 内容和 ActivityKit 实际活动作为两类事实来源。
-    - 【工程实施选择】所有失败路径都必须保留或恢复到一个满足不变量的状态，不清空编辑器、不删除便签库内容、不创建空白库记录、不自动续挂，也不无限重试。
+29. **Iconography.** App-owned icons use maintained Lucide vectors with the prototype's 2 px stroke character and consistent optical sizing. Do not substitute approximate SF Symbols. System-owned controls, keyboards, gestures, and ActivityKit hosting remain native.
 
-16. **必须真机验证而非产品保证的行为。**
+30. **Allowed visual adaptation.** The prototype is normative for colors, hierarchy, component state, spacing rhythm, radii, typography roles, elevation, and motion. Native adaptation is allowed and required for safe areas, device width, Dynamic Type, VoiceOver, keyboard presentation, sheet behavior, and ActivityKit-hosted layout. Fidelity does not permit clipping essential content, fixed-height failure at accessibility sizes, or overriding system privacy behavior.
 
-    - 首次 Activity 请求是否出现系统界面、出现时机、文案和允许/拒绝后的结果。
-    - 用户在系统设置中禁用或重新启用 Live Activities 后，已有活动和后续请求的实际行为。
-    - App 进入后台、被系统终止、崩溃或被用户强制结束后，已提交展示是否继续、最后一次防抖更新是否完成以及重新打开后的活动枚举。
-    - 设备重启前后 Activity 是否恢复、何时出现在灵动岛/锁屏、枚举结果和 deep link 行为。
-    - 真实 8 小时上限、从灵动岛移除的实际时刻以及锁屏可能残留的时长。
-    - 用户从锁屏手动移除、多个 App Live Activities 并存、compact/minimal 切换和系统暂时不展示本活动时的状态变化。
-    - 不同灵动岛宽度、默认与最大 Dynamic Type、粗体文本、中英文、手动换行、简单与组合 Emoji 在展开态和锁屏展示中的实际换行、截断和可读性。
-    - Lock Screen、Always-On、锁定/解锁、锁屏访问开关与系统 redaction 组合下的最终用户可见结果。
+31. **Live-state truth.** Do not persist or trust a long-lived Live Boolean. A current note is Live only when ActivityKit enumeration reports exactly one valid active activity for it after reconciliation. Dynamic Island visibility is not a reliable state source. Errors and cleanup are transient outcomes, not additional product states.
+
+32. **Live start.** `Go Live` validates actionable committed source, 240-character rules, and final 4 KB encoded payload, reconciles existing activities, blocks on unresolved inconsistencies, requests one new activity, re-enumerates, and only then exposes `Live`. Failure leaves the product non-Live with English retryable feedback.
+
+33. **Live updates.** A successful `Done` commit during a valid session queues the latest committed note ID, source, and content version. `LiveActivitySession` uses a short cancellable debounce and updates the same activity. Update failure never rolls back SwiftData; it preserves actual session state and reports that system display may be out of sync. A future commit, foreground reconciliation, or explicit action may retry; there is no infinite timer loop.
+
+34. **Live stop and end barrier.** `Live` requests end and re-enumerates before exposing `Go Live`. An end call that throws but has actually removed the activity counts as success after enumeration. An activity that remains active keeps the UI Live and produces retryable feedback. Pending updates are cancelled only after the relevant activity is confirmed absent.
+
+35. **Reconciliation.** Run reconciliation after bootstrap, each foreground entry, and valid Live Activity deep links. Keep at most one active session belonging to the current note and attempt to end duplicates and orphans. If cleanup remains inconsistent, do not create a new activity and present recovery feedback. Expiration, user removal, disabled Live Activities, early system end, and restart all converge according to the latest ActivityKit enumeration without changing saved note content.
+
+36. **Activity payload and lifetime.** Keep static attributes minimal and stable, including current-note identity; keep dynamic state minimal, including committed source and content version. Validate the combined final JSON representation against 4,096 bytes before start and update. Request an eight-hour stale date, accept that iOS may end earlier, and do not renew automatically. App-initiated end requests immediate removal intent, but ended Lock Screen content may remain under system control and does not mean the product is still Live.
+
+37. **Live Activity presentations.** Compact leading contains only the monochrome brand note icon and intentionally provides no trailing dot, status, or text. Minimal contains only the same brand icon. Expanded renders committed source with list semantics and no editing, controls, or scrolling. Lock Screen uses the same source and semantics but its own native layout, line limits, wrapping, and truncation. All regions deep-link only to Workbench.
+
+38. **Deep-link safety.** Accept only the Workbench destination. Ignore historical note identifiers and query values. A deep link dismisses any App-level sheet, returns to Workbench, preserves current-note identity, and triggers ActivityKit reconciliation. It never replaces a note, restores from the library, deletes content, or starts Live.
+
+39. **Errors and feedback.** Retain required failure behavior even where the PNG omits it, using the prototype's Hints & Messages visual language. Messages are concise English, close to the triggering action, and announced by VoiceOver. Save failure keeps the draft; start/stop/update/reconcile follows system truth; move/replace/delete failure preserves committed data. Errors do not create permanent domain states or false success.
+
+40. **Incremental migration sequence.** First extract `NoteWorkspace`, `LiveActivitySession`, and `AppRouter` behind the existing feature without changing user behavior. Then deliver vertical slices: centralized Design System and App shell; Workbench display/edit and explicit commit; Note Library; Settings and appearance; Live Activity presentations; delete and feedback. Each slice includes the minimal internal refactor needed for that slice, updates tests only for confirmed behavior changes, and restores a fully green suite before the next slice. Do not perform a wholesale rewrite or rename-only architecture pass.
+
+41. **Old specification decisions explicitly replaced.** Replace the permanent editable text surface with display/edit states; replace per-keystroke SwiftData auto-save with `Done` commit; replace direct Library header navigation with More Menu and sheet routing; replace whole-row library exchange with an explicit row action; replace a native delete alert with the custom bottom dialog; add Settings and persistent display modes; replace system-following-only appearance with Automatic/Light/Dark; replace Chinese user-facing strings with English-only UI; replace approximate SF Symbols for App-owned icons with Lucide; add bullet rendering for `- ` list lines; make the new Design System normative; and use the updated Compact/Minimal icon-only presentations.
+
+42. **Previous behavior still valid.** Preserve one current note; local-only SwiftData truth; stable existing records; verbatim source; 240 extended-grapheme capacity; IME-safe limiting; nonblank action eligibility; atomic move/replace/delete; reverse library ordering; a maximum of one current-note Live Activity; 4 KB validation; no automatic Live for a new current note; update of the same activity after committed edits; end barrier; bootstrap/foreground/deep-link reconciliation; eight-hour maximum with possible early end and no auto-renewal; Lock Screen presentation; Workbench-only deep links; English retryable failure semantics in the new UI; Dynamic Type, VoiceOver, and Reduce Motion support; and real-device acceptance for ActivityKit behavior.
 
 ## Testing Decisions
 
-1. **主要自动化测试 seam。** 仓库当前没有正式原生 App 代码，也不存在可复用的生产测试 prior art。后续实现应建立一个最高层、数量尽量为一的 App 功能组合层测试 seam：使用内存 SwiftData 容器和可替换的 Live Activity controller 组装完整功能状态，通过公开用户动作驱动首次启动、编辑、导航、挂起、取消、入库、删除、交换、失败与对账，并从用户可观察的界面状态、持久化结果和替身所代表的系统活动结果判断行为。
+1. **Primary seam.** Preserve one highest-level combination seam around public `IslandNotesFeature` user actions. Its harness composes an in-memory SwiftData `ModelContainer`, the existing fake implementation of `LiveActivityControlling`, isolated appearance preference storage, a real `AppRouter`, deterministic time where needed, and the production feature/modules. This seam was explicitly confirmed during product grilling and requires no further approval.
 
-2. **好测试的判定。** 测试描述用户输入和可观察结果，不断言私有方法、内部调用次数、具体防抖实现、SwiftUI 私有视图层级、某个类型是否被拆成特定文件，或 controller 内部使用了哪一个 ActivityKit API。允许替身控制系统成功、失败和活动枚举，但断言应落在“用户看到什么、SwiftData 保留什么、系统替身实际有哪些活动、是否满足领域不变量”。
+2. **Test observable outcomes.** Drive bootstrap, begin edit, stage input, `Done`, ring reveal, menu routing, move, replace, delete, Go Live, Live stop, foregrounding, and deep links through public actions. Assert visible feature/router/appearance state, committed SwiftData records, library ordering, and fake ActivityKit sessions. Do not assert private methods, internal call counts, exact file ownership, concrete helper types, or private SwiftUI view hierarchy.
 
-3. **首次启动与持久化组合测试。**
+3. **Preserve prior art.** Continue the established XCTest patterns for feature behavior, character limits, payload sizing, controller contracts, library mutations, Live lifecycle, reconciliation, deep links, presentations, project smoke checks, and UI automation. Keep the existing 46 Feature/contract tests running through extraction; rewrite only tests whose external contract is explicitly replaced, especially per-keystroke auto-save, Chinese copy, native delete alert, direct Library entry, row-tap exchange, and old Live presentation expectations.
 
-   - 空容器首次启动产生唯一空白当前便签槽位，操作禁用但便签库可进入。
-   - 输入有效文字后自动保存；重新创建功能组合后恢复同一当前便签内容。
-   - 中文、英文、数字、标点、空格、手动换行、普通 Emoji、肤色/家庭/ZWJ 组合 Emoji 原样往返。
-   - 以 `-`、`*` 和数字开头的内容不被转换；连续空格和空行不被折叠。
-   - 只有空白字符时挂起、入库和删除保持禁用，但原始空白仍可在编辑会话中保留。
+4. **Focused deep-module tests.** Add direct tests where they provide sharper failure localization: `NoteWorkspace` for bootstrap repair and atomic persistence invariants; `LiveActivitySession` for debounce, end barriers, duplicate/orphan cleanup, and reconciliation; `AppearanceSettings` for default, persistence, and forced-mode behavior; `AppRouter` for one-sheet exclusivity and Workbench deep links. These tests supplement rather than replace the combination seam.
 
-4. **字符边界组合测试。**
+5. **Editing and persistence matrix.** Cover display-to-edit transition, exact source seeding, draft-only typing, `Done` success, save failure retaining draft, sheets/background preserving draft, process restart losing uncommitted draft while restoring committed source, replacement discarding draft, committed Live update, and existing-store upgrade. Verify that rendered content is never persisted as a second body.
 
-   - 239 个字符时接受第 240 个；第 240 个保存后进度与 VoiceOver 值正确。
-   - 第 241 个插入被拒绝并出现轻提示，已有 240 个字符不变。
-   - 超限粘贴只接收可容纳的完整扩展字素簇，不拆分组合 Emoji。
-   - 达到上限后删除和等长/缩短替换仍可用；输入法组合文本提交后才应用最终限制。
-   - 圆环默认不持续显示数字，公开点击动作后临时显示已用和剩余值。
+6. **Text and rendering matrix.** Cover empty/whitespace, ASCII, Chinese, line breaks, punctuation, simple Emoji, multi-scalar composed Emoji, 239/240/241 characters, over-limit paste, active marked text, source list lines, mixed list and ordinary lines, unsupported Markdown-like syntax, and character ring values in display/edit states. Verify identical list semantics in Workbench, Expanded, and Lock Screen presentation models without requiring identical layout.
 
-5. **入库、删除与交换组合测试。**
+7. **Library and transaction matrix.** Cover empty library, descending entry time, deterministic ties, timestamp categories, move, successful replacement with nonblank outgoing current, replacement with blank outgoing current, row no-op, draft discard, successful sheet dismissal, failed sheet retention, delete cancel/confirm/failure, and every Live end-barrier result. Assert atomic persisted outcomes and no blank library entries.
 
-   - 有效当前便签入库后旧内容进入便签库顶部，当前便签槽位补为空白且未挂起。
-   - 多次入库后便签库按最近入库时间倒序；稳定的相同时间测试数据仍产生确定顺序。
-   - 点击旧便签时，非空当前便签进入库顶、所选旧便签离库并成为当前便签。
-   - 空白当前便签与旧便签交换时不产生空白库记录。
-   - 便签库不暴露编辑、挂起或删除用户动作。
-   - 删除取消不改变任何状态；确认删除后原内容不可恢复且当前便签槽位补为空白。
-   - 挂起中执行入库、确认删除或交换时，结束成功才继续；结束失败且活动仍在时内容操作被中止且全部数据不变。
+8. **Live Activity matrix.** Cover start success/failure, post-request verification, 4 KB start/update failures, update debounce and latest committed value, stop success, end-then-throw, keep-then-throw, expired/user-removed activities, wrong-note orphans, duplicates, cleanup failure, foreground/bootstrap/deep-link reconciliation, no auto-start after current-note changes, and repeated manual Go Live after an ended session.
 
-6. **挂起生命周期组合测试。**
+9. **Appearance and routing matrix.** Cover Automatic reacting to system changes, forced Light over system Dark, forced Dark over system Light, restart persistence, App-only scope, More Menu dismissal, Note Library/Settings one-sheet exclusivity, close behavior, draft preservation, and deep-link return to Workbench without note replacement.
 
-   - 非空白当前便签启动成功后显示挂起中，并且替身中只有一个属于当前便签的活跃活动。
-   - 空白便签不能发起启动；启动失败保持未挂起、内容不变并显示可重试反馈。
-   - 已挂起时重复挂起不创建、替换、重置或延长活动。
-   - 取消成功后显示未挂起且内容不变；结束失败且重新枚举仍活跃时继续显示挂起中。
-   - 活动到达上限、被用户移除、被系统结束或禁用后，下一次状态更新/对账收敛为未挂起，不产生“已到期”长期状态。
-   - 展示结束后再次挂起创建全新活动；不自动续挂、不保留永久挂起意图。
+10. **Component and visual verification.** Maintain representative SwiftUI previews for every key Workbench display/edit/empty/limit/Live/error/delete state; Library empty/populated/replacement state; Settings and all appearance choices; More Menu; custom dialog; Light and Dark variants; default and maximum Dynamic Type; Reduce Motion; Compact, Minimal, Expanded, and Lock Screen. Compare key states against the high-fidelity PNG and centralized Design System tokens.
 
-7. **挂起中编辑与失败组合测试。**
+11. **UI automation.** Run complete primary flows on an iPhone 16 Pro current iOS 26.x simulator: first launch, edit/Done, ring, More Menu, Library move/replace, Settings modes, delete, Go Live/Live when simulator support permits, deep link, errors exposed through deterministic launch/test seams, accessibility labels, 44-point targets, maximum Dynamic Type, and Reduce Motion. UI tests may use stable accessibility identifiers but must assert user-visible behavior rather than private hierarchy.
 
-   - 挂起中连续编辑先保存 SwiftData，短暂停顿后替身活动呈现最终最新正文。
-   - 更新成功保持同一便签和同一展示会话身份。
-   - 更新失败时 SwiftData 新内容仍保存；若替身活动仍活跃，UI 保持挂起中并提示系统展示可能未同步。
-   - 下一次编辑或公开用户操作可以再次尝试更新；没有无限自动重试的用户可观察副作用。
-   - 4 KB 检查失败分别产生启动失败或更新失败结果，且不损坏本地内容、不虚报系统状态。
+12. **Minimum OS validation.** Build and launch on a Dynamic Island simulator running the minimum supported iOS 17.x version and execute the core Workbench, persistence, Library, Settings, and deep-link flow. Current-iOS-only visual behavior must degrade within the confirmed native adaptation rules rather than changing product semantics.
 
-8. **启动、前台与不一致对账组合测试。**
+13. **Accessibility acceptance.** Manually verify the complete core flow with VoiceOver, including focus order, current note state, character value, replace action, display-mode selection, Live status, delete dialog, and timely error announcements. Verify default and maximum Accessibility Dynamic Type, non-color status cues, 44-point targets, and Reduce Motion behavior. The confirmed no-op support rows intentionally have no “not available” hint.
 
-   - SwiftData 没有长期挂起布尔字段也能根据替身活动恢复挂起中或未挂起。
-   - 当前便签对应活动仍在时采用系统实际状态；没有活动时收敛为未挂起。
-   - 发现不属于当前便签的孤立活动时尝试安全结束，当前便签不被自动替换。
-   - 结束孤立活动失败时不虚报完成、不创建新活动，并在后续公开对账动作时可再次收敛。
-   - 多个本 App 活动并存时最终满足至多一个活动且它属于当前便签；清理前禁止新挂起。
-   - 过期或失效 deep link 只打开当前便签工作台并触发对账，不恢复、交换或挂起旧便签。
+14. **Real-device ActivityKit acceptance.** Before release, use at least one current iOS 26.x Dynamic Island iPhone to verify Live start/update/stop/restart, Compact, Minimal, Expanded, Lock Screen, bullet rendering, independent truncation, all deep links, disabled Live Activities, user removal, background, force termination, device reboot, reconciliation, eight-hour lifecycle, possible Lock Screen residual content, representative 240-character payloads, 4 KB failure, VoiceOver, maximum Dynamic Type, Reduce Motion, Light/Dark, and privacy behavior. Use a second Dynamic Island width when available; otherwise record simulator-only evidence explicitly.
 
-9. **外观与无障碍自动化边界。**
-
-   - 在功能组合层验证浅色/深色语义状态、Dynamic Type 下关键操作仍可达、Reduce Motion 下不依赖动画表达状态。
-   - 使用公开无障碍信息验证当前便签、字符圆环、挂起/取消、入库、删除、便签库条目、错误和确认界面的 label、value、enabled/disabled 状态与提示。
-   - 不用像素颜色或私有 SwiftUI 层级作为业务行为断言；视觉回归由 Preview 和平台截图验收承担。
-
-10. **Activity 数据契约测试。** 使用与生产完全相同的 Codable/JSON 编码方式验证静态 attributes 与动态 Content State 能往返，并计算二者合计大小。至少覆盖 240 个中文、240 个 ASCII、240 个简单 Emoji、240 个包含 ZWJ/肤色/组合音标的用户感知字符，以及字段开销的最坏代表样本。
-
-11. **SwiftUI Preview 验收边界。** Preview 至少提供：首次空白、有效文本、239/240 字、超限反馈、挂起中、更新未同步、便签库空/多条/倒序、删除确认、浅色、深色、最大 Dynamic Type、Reduce Motion，以及紧凑态、minimal、展开态和锁屏的短文本/长文本/换行/Emoji 状态。Preview 只证明布局方向，不证明系统真实 ActivityKit 行为。
-
-12. **iPhone Simulator 验收边界。** 在支持当前部署目标的 iPhone Simulator 上构建并运行 App 与 Widget Extension，验证基本 ActivityKit 启动/更新/结束链路、各 presentation Preview/模拟展示、冷/热启动 deep link、工作台和便签库流程、浅色/深色及基本 Dynamic Type。模拟器结果不替代真机灵动岛、授权、隐私、强杀、重启或长时生命周期验证。
-
-13. **带灵动岛真实 iPhone 验收边界。** 发布前至少覆盖一个较窄灵动岛宽度和一个较宽设备等级；系统版本以发布时支持的最新稳定版本为准。必须保留测试记录，覆盖：
-
-    - 实际紧凑态、minimal、展开态和锁屏布局与点击跳转；
-    - 首次请求系统界面、允许/拒绝、设置中禁用与重新启用；
-    - 挂起中编辑后正常停顿、立即回 Home、锁屏、切 App 和强杀时的最后一次更新结果；
-    - App 被系统终止、崩溃或强杀后的展示存续与重新打开对账；
-    - 设备重启前后的系统展示、活动枚举和 deep link；
-    - 完整 8 小时生命周期、灵动岛移除时刻与锁屏可能残留；
-    - 用户手动移除、多个 App 活动并存以及 compact/minimal 的系统选择；
-    - 默认/最大 Dynamic Type、粗体文本、浅色/深色、Always-On、锁屏访问与 redaction 组合；
-    - 中文、英文、手动换行、240 字、简单和组合 Emoji 的实际截断与可读性。
-
-14. **完成判据。** 自动化测试通过只能证明可替换 seam 内的用户行为；真实 ActivityKit、Widget Extension 与系统 presentation 的必要平台验收也必须通过并记录，才能宣称 MVP 符合本规格。任何真机结果若与本文的 Apple 系统约束假设冲突，应收紧产品承诺或实现，不得用网页原型结果覆盖真机事实。
+15. **Incremental green rule.** Each extraction or vertical slice begins from the currently passing suite, changes the smallest necessary external expectations, adds coverage for its new behavior, and ends with all applicable Feature, contract, UI, build, and visual checks green. A slice is not complete merely because new module tests pass while the highest-level behavior suite is broken.
 
 ## Out of Scope
 
-1. 定时提醒、定时挂起、倒计时、自动取消挂起、通知排程或任何“到时间提醒我”的能力。
-2. 永久挂起意图、一直显示到用户取消、后台自动续挂、无缝接续下一段 Live Activity、挂起冷却时间或重新挂起次数限制。
-3. iCloud、账号体系、登录、后端、服务器、网络请求、APNs 远程更新和跨设备同步。
-4. 搜索、标签、文件夹、收藏、手动置顶、归档分区、历史版本、回收站或便签库手动排序。
-5. 桌面小组件、锁屏小组件、分享扩展、快捷指令、App Intents、其他 App 的分享入口或系统通知替代体验。
-6. 为没有灵动岛的 iPhone 设计锁屏通知、普通通知、横幅或其他替代体验；非灵动岛设备不属于本 MVP 正式支持范围。
-7. 便签颜色、字体、字号、主题选择或其他用户自定义外观；设置页、Widget 设置、反馈、网站和关于页也不在 MVP 内。
-8. 灵动岛内编辑、完成、取消挂起、删除、切换、勾选或其他快捷操作；系统展示只负责查看和进入当前便签工作台。
-9. 多张可直接新建或切换的活跃便签首页、便签切换面板或“新建便签”按钮。
-10. 列表型便签、标题字段、待办项目、完成状态、勾选、拖拽排序、自动重排、项目级删除或 Markdown/列表解析。
-11. 查看态与编辑态切换、`DONE`、保存、完成或提交按钮，以及把系统键盘 Return 改成完成动作。
-12. 在便签库中直接编辑、挂起或删除旧便签，旧便签预览详情页，或恢复前二次确认。
-13. 正式 App Store 名称、正式 Logo、品牌资产、商店上架、商业模式、长期路线和跨版本数据迁移；开发可使用可替换的工作名称与单色占位标记，不得因此阻塞 MVP。
-14. 制作新的 Web/SwiftUI throwaway 原型、继续 Wayfinder/grilling 访谈、创建新决策票或执行现有票据中的冗长原型流程。
-15. 任何绕过 ActivityKit 8 小时上限、4 KB 数据限制、系统 presentation、用户隐私设置或系统移除行为的自定义常驻机制。
+- Full Markdown, headings, task items, rich text, or formatting beyond rendering source lines beginning with `- ` as round bullets.
+- Note Library preview modes, whole-row replacement, editing or deleting library entries, search, tags, folders, favorites, manual ordering, or bulk management.
+- Functional Feedback, Website, About, or Privacy destinations; the first three remain confirmed no-action rows and Privacy remains absent.
+- Chinese localization, a language switch, or acceptance of a second language.
+- Appearance customization beyond Automatic, Light, and Dark; no custom colors, fonts, paper styles, or type-size setting.
+- Accounts, backend services, networking, iCloud, collaboration, or cross-device synchronization.
+- Notifications, reminders, countdowns, scheduled Go Live, automatic Live renewal, or permanent display intent.
+- A standalone home/lock-screen Widget product, share extension, Shortcuts, App Intents, or other system integrations beyond the existing Live Activity extension.
+- Editing, controls, buttons, or scrolling inside Dynamic Island or Lock Screen presentations.
+- A non-Dynamic-Island iPhone alternative product experience.
+- A SwiftData repository protocol without a real second adapter, full classic MVVM, a Workbench page ViewModel, or shallow ViewModels for buttons, rows, settings, and visual components.
+- App Store marketing assets, release copy, distribution, or store submission workflow.
+- Ticket decomposition; this specification is published as one `ready-for-agent` item and will be planned separately.
 
 ## Further Notes
 
-1. **资料优先级。** 产品行为以已关闭的 Wayfinder 产品决定为最高依据；ActivityKit 系统研究决定技术与系统能力边界；已确认 Web 原型只决定视觉语言、页面布局方向、空间层级和组件气质；旧设计与旧实施计划只用于识别错误方向。若后续实现发现新的 Apple 平台事实，先把它标记为系统约束变化并收紧不能兑现的承诺，不得静默改变已确认产品行为。
+1. **Source priority.** Confirmed redesign decisions and ADRs govern explicit conflicts; the latest high-fidelity PNG governs product scope, states, interaction intent, and visual implementation by default; current code/tests provide compatibility evidence; unaffected previous behavior remains valid. Deleted prototypes and old plans cannot fill gaps or override this specification.
 
-2. **Web 原型用途。** 原型确认了黑白主色、弱绿色强调、大字号、圆角纸张表面、柔和空间层次、首页聚焦当前便签、次级便签库和底部三点操作的视觉方向。HTML 中的模拟灵动岛不是 ActivityKit 可行性证明；其 `Go Live`、查看/编辑切换、`DONE`、虚拟键盘、Markdown/列表解析、主题选择、Widget 设置、反馈、网站、关于和其他设置行为均不进入本规格。
+2. **System behavior versus code guarantee.** The app can guarantee its request parameters, payload validation, persisted data, reconciliation algorithm, and UI response to enumerated ActivityKit state. It cannot guarantee when iOS shows a Live Activity, whether the user permits it, which Dynamic Island presentation iOS selects, exact visible character count, exact wrapping/truncation, Always-On behavior, privacy redaction, continued execution after background/force termination, persistence across reboot, exact early-end timing, or Lock Screen residual duration. These are real-device observations and must be recorded as evidence, not asserted as deterministic unit-test contracts.
 
-3. **系统限制。** 240 个用户感知字符是 App 输入容量，不是系统完整显示保证，也不是 4 KB 编码安全保证。紧凑态、minimal、展开态和锁屏的实际呈现由 ActivityKit/WidgetKit 和系统决定；产品只保证数据来源与内容状态契约。Live Activity 最长活跃 8 小时且可能提前结束，锁屏可能保留已结束内容，但系统残留不构成挂起中。
+3. **Normative versus adaptive visuals.** Semantic colors, typography roles, spacing rhythm, radii, elevation, motion, icon family, component hierarchy, control states, and Light/Dark compositions are mandatory. Safe-area insets, sheet mechanics, keyboard avoidance, Dynamic Type reflow, VoiceOver grouping, device width, and ActivityKit-hosted line layout may adapt natively. Adaptation must preserve every essential action and semantic state.
 
-4. **过时资料。** 2026-07-30 的旧设计与实施计划围绕多张列表型便签、标题、列表项、完成状态、拖拽排序、新建多张便签和切换面板展开，已经整体过时，不是实现依据。后续 Agent 不得执行该旧计划，也不得复用其中的数据模型、页面拆分、测试目标或 deep link 自动切换便签行为。
+4. **Compatibility boundary.** The redesign intentionally changes visible copy, navigation, editing commit behavior, list rendering, delete presentation, settings, iconography, and Live presentation. It does not authorize resetting data, weakening persistence atomicity, adding a second content truth, replacing ActivityKit enumeration with a Boolean, removing the end barrier, or abandoning the established feature-level test seam.
 
-5. **当前仓库状态。** 当前仓库没有正式原生 App 代码、Xcode 工程、Widget Extension 或可复用的生产测试先例。本规格因此固定一个新的最高层用户行为测试 seam，而不是假设存在 prior art。后续开发应先据此编写实施计划，再建立测试目标与内存 SwiftData/可替换 Live Activity controller 组合，按 TDD 实施。
-
-6. **交付状态。** 本规格已综合用户明确确认的异常恢复默认规则与测试边界，达到 `ready-for-agent`。后续开发 Agent 可以直接进行工程实施规划和原生 App 开发，不需要重新开展产品访谈；若只涉及工程内部取舍，应在不改变本规格用户可观察行为和系统承诺的前提下自行决定。
+5. **Ready state.** Product scope, interaction behavior, architecture direction, test seams, exclusions, and acceptance environments have been explicitly confirmed. There are no open product decisions blocking implementation planning. Exact English error phrasing may be polished within the confirmed error categories and Hints & Messages design language without introducing new behavior.

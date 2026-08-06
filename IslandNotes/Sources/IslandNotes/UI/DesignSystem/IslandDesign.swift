@@ -27,12 +27,20 @@ enum IslandDesign {
             adaptive(light: 0xE7E7E2, dark: 0x30302E)
         }
 
+        static var border: Color {
+            separator
+        }
+
         static var placeholder: Color {
             secondaryText.opacity(0.55)
         }
 
         static var progressTrack: Color {
             secondaryText.opacity(0.18)
+        }
+
+        static var progress: Color {
+            primaryText
         }
 
         static var surfaceBorder: Color {
@@ -63,13 +71,17 @@ enum IslandDesign {
 
     enum Typography {
         static let productName = Font.system(.largeTitle, design: .default, weight: .bold)
-        static let sheetTitle = Font.system(.headline, design: .default, weight: .semibold)
+        static let screenTitle = Font.system(.headline, design: .default, weight: .semibold)
+        static let sheetTitle = screenTitle
         static let menuItem = Font.system(.body, design: .default, weight: .medium)
         static let body = Font.system(.body, design: .default, weight: .regular)
+        static let noteBody = Font.system(.title2, design: .default, weight: .regular)
         static let caption = Font.system(.caption, design: .default, weight: .semibold)
+        static let metadata = Font.system(.caption, design: .monospaced, weight: .regular)
+        static let capacity = Font.system(.caption, design: .monospaced, weight: .semibold)
         static let action = Font.system(.subheadline, design: .default, weight: .semibold)
         static let feedback = Font.system(.footnote, design: .default, weight: .semibold)
-        static let editor = Font.system(.title2, design: .default, weight: .regular)
+        static let editor = noteBody
     }
 
     enum Spacing {
@@ -78,6 +90,7 @@ enum IslandDesign {
         static let x4: CGFloat = 16
         static let x6: CGFloat = 24
         static let x8: CGFloat = 32
+
     }
 
     enum Radius {
@@ -85,6 +98,7 @@ enum IslandDesign {
         static let card: CGFloat = 22
         static let sheet: CGFloat = 34
         static let pill: CGFloat = 1_000
+
     }
 
     enum Elevation {
@@ -95,6 +109,7 @@ enum IslandDesign {
             let y: CGFloat
         }
 
+        static let control = Shadow(color: .black.opacity(0.04), radius: 12, x: 0, y: 6)
         static let menu = Shadow(color: .black.opacity(0.14), radius: 22, x: 0, y: 12)
         static let card = Shadow(color: .black.opacity(0.06), radius: 22, x: 0, y: 10)
     }
@@ -126,9 +141,21 @@ enum IslandDesign {
         static let deliberate: Double = 0.21
         static let menuScale: CGFloat = 0.96
         static let livePulseScale: CGFloat = 1.08
+        static let pressedScale: CGFloat = 0.97
+
+        static func animation(
+            duration: Double = standard,
+            reduceMotion: Bool
+        ) -> Animation? {
+            reduceMotion ? nil : .easeOut(duration: duration)
+        }
 
         static func menu(reduceMotion: Bool) -> Animation? {
-            reduceMotion ? nil : .easeOut(duration: standard)
+            animation(reduceMotion: reduceMotion)
+        }
+
+        static func interactiveScale(isPressed: Bool, reduceMotion: Bool) -> CGFloat {
+            isPressed && !reduceMotion ? pressedScale : 1
         }
     }
 }

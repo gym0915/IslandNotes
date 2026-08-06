@@ -1,6 +1,6 @@
 import SwiftUI
 
-enum AppIcon: String {
+enum AppIcon: String, CaseIterable {
     case more = "lucide-ellipsis"
     case noteLibrary = "lucide-library"
     case settings = "lucide-settings"
@@ -8,6 +8,21 @@ enum AppIcon: String {
     case moveToLibrary = "lucide-archive"
     case live = "lucide-radio"
     case delete = "lucide-trash-2"
+    case replace = "lucide-replace"
+    case appearance = "lucide-monitor"
+    case light = "lucide-sun"
+    case dark = "lucide-moon"
+    case feedback = "lucide-message-circle"
+    case website = "lucide-globe"
+    case about = "lucide-info"
+    case check = "lucide-check"
+    case noteBrand = "lucide-notebook-text"
+
+    static let automatic: AppIcon = .appearance
+
+    var assetName: String {
+        rawValue
+    }
 }
 
 struct AppIconView: View {
@@ -15,7 +30,7 @@ struct AppIconView: View {
     var size = IslandDesign.Sizing.icon
 
     var body: some View {
-        Image(icon.rawValue)
+        Image(icon.assetName)
             .resizable()
             .renderingMode(.template)
             .scaledToFit()

@@ -22,21 +22,27 @@ private struct PendingActivityUpdate: Equatable, Sendable {
 final class IslandNotesFeature {
     private let workspace: NoteWorkspace
     private let liveActivityController: LiveActivityControlling
+    private let characterDetailScheduler: CharacterDetailScheduler
     @ObservationIgnored private var pendingActivityUpdate: PendingActivityUpdate?
     @ObservationIgnored private var activityUpdateTask: Task<Void, Never>?
+    @ObservationIgnored private var characterDetailCancellation: CharacterDetailCancellation?
 
     var currentNote: NoteSnapshot? { workspace.currentNote }
     var library: [NoteSnapshot] { workspace.library }
     private(set) var pinState: PinState = .unpinned
-    private(set) var editingText = ""
+    private(set) var editingDraft: String?
     private(set) var didReachCharacterLimit = false
     private(set) var isCharacterCountVisible = false
     private(set) var deleteConfirmation: DeleteConfirmation?
     private(set) var feedbackMessage: String?
     private(set) var hasActivityInconsistency = false
 
+    var isEditing: Bool { editingDraft != nil }
+    var editingText: String { editingDraft ?? currentNote?.body ?? "" }
+
     var characterProgress: CharacterProgress {
-        let used = min(editingText.count, TextLimiter.maximumCharacterCount)
+        let source = editingDraft ?? currentNote?.body ?? ""
+        let used = min(source.count, TextLimiter.maximumCharacterCount)
         return CharacterProgress(
             used: used,
             remaining: TextLimiter.maximumCharacterCount - used
@@ -50,10 +56,12 @@ final class IslandNotesFeature {
 
     init(
         workspace: NoteWorkspace,
-        liveActivityController: LiveActivityControlling
+        liveActivityController: LiveActivityControlling,
+        characterDetailScheduler: CharacterDetailScheduler
     ) {
         self.workspace = workspace
         self.liveActivityController = liveActivityController
+        self.characterDetailScheduler = characterDetailScheduler
     }
 
     convenience init(
@@ -63,26 +71,23 @@ final class IslandNotesFeature {
     ) {
         self.init(
             workspace: NoteWorkspace(modelContext: modelContext, now: now),
-            liveActivityController: liveActivityController
+            liveActivityController: liveActivityController,
+            characterDetailScheduler: .live
         )
     }
 
     func bootstrap() async throws {
         try workspace.bootstrap()
-        editingText = currentNote?.body ?? ""
+        editingDraft = nil
         await reconcileActivities()
     }
 
-    func editCurrentNote(
-        proposedText: String,
-        markedTextActive: Bool
-    ) async throws {
-        let limitResult = stageEditorText(
-            proposedText: proposedText,
-            markedTextActive: markedTextActive
-        )
-        guard !markedTextActive else { return }
-        try persistStagedEditorText(limitResult.acceptedText)
+    func beginEditing() {
+        guard editingDraft == nil else { return }
+        let source = currentNote?.body ?? ""
+        editingDraft = source
+        didReachCharacterLimit = source.count >= TextLimiter.maximumCharacterCount
+        feedbackMessage = nil
     }
 
     @discardableResult
@@ -94,20 +99,28 @@ final class IslandNotesFeature {
             proposedText: proposedText,
             markedTextActive: markedTextActive
         )
-        editingText = limitResult.acceptedText
-        didReachCharacterLimit = limitResult.wasTruncated
+        guard editingDraft != nil else { return limitResult }
+        editingDraft = limitResult.acceptedText
+        didReachCharacterLimit = limitResult.isAtLimit
         return limitResult
     }
 
-    func persistStagedEditorText(_ stagedText: String) throws {
-        guard editingText == stagedText else { return }
+    func completeEditing() throws {
+        guard let editingDraft else { return }
+        let finalized = TextLimiter.limit(
+            proposedText: editingDraft,
+            markedTextActive: false
+        )
+        self.editingDraft = finalized.acceptedText
+        didReachCharacterLimit = finalized.isAtLimit
         do {
-            guard try workspace.commitCurrentNote(stagedText) else { return }
+            guard try workspace.commitCurrentNote(finalized.acceptedText) else { return }
             feedbackMessage = nil
         } catch {
             feedbackMessage = "Your note hasn't been saved."
             throw error
         }
+        self.editingDraft = nil
         if pinState == .pinned, let currentNote {
             enqueueActivityUpdate(
                 PendingActivityUpdate(
@@ -119,12 +132,13 @@ final class IslandNotesFeature {
         }
     }
 
-    func completeEditing() throws {
-        try persistStagedEditorText(editingText)
-    }
-
     func revealCharacterCount() {
+        characterDetailCancellation?.cancel()
         isCharacterCountVisible = true
+        characterDetailCancellation = characterDetailScheduler.schedule { [weak self] in
+            self?.isCharacterCountVisible = false
+            self?.characterDetailCancellation = nil
+        }
     }
 
     func archiveCurrentNote() async throws {
@@ -305,6 +319,7 @@ final class IslandNotesFeature {
         records: [NoteRecord],
         currentNoteID: UUID,
         pinState: PinState = .unpinned,
+        editingDraft: String? = nil,
         didReachCharacterLimit: Bool = false,
         isCharacterCountVisible: Bool = false,
         deleteConfirmation: DeleteConfirmation? = nil,
@@ -314,9 +329,10 @@ final class IslandNotesFeature {
         workspace.loadPreview(records: records, currentNoteID: currentNoteID)
         let feature = IslandNotesFeature(
             workspace: workspace,
-            liveActivityController: liveActivityController
+            liveActivityController: liveActivityController,
+            characterDetailScheduler: .live
         )
-        feature.editingText = workspace.currentNote?.body ?? ""
+        feature.editingDraft = editingDraft
         feature.pinState = pinState
         feature.didReachCharacterLimit = didReachCharacterLimit
         feature.isCharacterCountVisible = isCharacterCountVisible
@@ -329,8 +345,10 @@ final class IslandNotesFeature {
     private func resetEditingStateAfterCurrentNoteChange() {
         pinState = .unpinned
         didReachCharacterLimit = false
+        characterDetailCancellation?.cancel()
+        characterDetailCancellation = nil
         isCharacterCountVisible = false
-        editingText = currentNote?.body ?? ""
+        editingDraft = nil
     }
 
     private func endCurrentActivityBarrier(noteID: UUID) async -> Bool {

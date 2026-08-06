@@ -189,7 +189,21 @@ final class LiveActivityLifecycleTests: XCTestCase {
         await harness.feature.startPinning()
         let originalActivity = try XCTUnwrap(harness.controller.activeActivities.first)
 
-        try harness.commitCurrentNote("已经先保存的新内容")
+        harness.feature.beginEditing()
+        harness.feature.stageEditorText(
+            proposedText: "尚未提交的草稿",
+            markedTextActive: false
+        )
+
+        XCTAssertEqual(harness.feature.currentNote?.body, "初始内容")
+        XCTAssertEqual(try harness.notes().first?.body, "初始内容")
+        XCTAssertEqual(harness.controller.activeActivities.first?.body, "初始内容")
+
+        harness.feature.stageEditorText(
+            proposedText: "已经先保存的新内容",
+            markedTextActive: false
+        )
+        try harness.feature.completeEditing()
 
         XCTAssertEqual(harness.feature.currentNote?.body, "已经先保存的新内容")
         XCTAssertEqual(try harness.notes().first?.body, "已经先保存的新内容")

@@ -30,6 +30,29 @@ final class IslandNotesUITests: XCTestCase {
         XCTAssertFalse(menu.exists)
     }
 
+    func testViewingEditingAndDoneRendersOnlyExactBulletLines() {
+        let app = launchCleanApp()
+        let renderedNote = app.buttons["rendered-note"]
+
+        XCTAssertTrue(renderedNote.waitForExistence(timeout: 5))
+        XCTAssertFalse(app.textViews["current-note-editor"].exists)
+        renderedNote.tap()
+
+        let editor = app.textViews["current-note-editor"]
+        XCTAssertTrue(editor.waitForExistence(timeout: 2))
+        XCTAssertEqual(editor.value as? String, "")
+        editor.typeText("Plain line\n- Bullet line\n# literal heading\n* literal star")
+        app.buttons["done-editing"].tap()
+
+        XCTAssertTrue(renderedNote.waitForExistence(timeout: 3))
+        XCTAssertFalse(editor.exists)
+        XCTAssertTrue(app.staticTexts["Plain line"].exists)
+        XCTAssertTrue(app.descendants(matching: .any)["rendered-bullet-1"].exists)
+        XCTAssertTrue(app.staticTexts["Bullet line"].exists)
+        XCTAssertTrue(app.staticTexts["# literal heading"].exists)
+        XCTAssertTrue(app.staticTexts["* literal star"].exists)
+    }
+
     func testNoteLibraryUsesTheSharedSheetAndCloseReturnsToWorkbench() {
         let app = launchCleanApp()
 
@@ -60,10 +83,11 @@ final class IslandNotesUITests: XCTestCase {
         XCTAssertGreaterThanOrEqual(app.buttons["close-sheet"].frame.height, 44)
     }
 
-    func testEmptyWorkbenchExposesEditorLibraryAndDisabledActions() {
+    func testEmptyWorkbenchExposesDisplaySurfaceLibraryAndDisabledActions() {
         let app = launchCleanApp()
 
-        XCTAssertTrue(app.textViews["current-note-editor"].waitForExistence(timeout: 5))
+        XCTAssertTrue(app.buttons["rendered-note"].waitForExistence(timeout: 5))
+        XCTAssertFalse(app.textViews["current-note-editor"].exists)
         XCTAssertTrue(app.buttons["open-more-menu"].exists)
         XCTAssertFalse(app.buttons["archive-current-note"].isEnabled)
         XCTAssertFalse(app.buttons["toggle-pin"].isEnabled)
@@ -72,11 +96,16 @@ final class IslandNotesUITests: XCTestCase {
 
     func testEditingEnablesActionsAndDeleteShowsIrreversibleConfirmation() {
         let app = launchCleanApp()
+        let renderedNote = app.buttons["rendered-note"]
+        XCTAssertTrue(renderedNote.waitForExistence(timeout: 5))
+        renderedNote.tap()
         let editor = app.textViews["current-note-editor"]
-        XCTAssertTrue(editor.waitForExistence(timeout: 5))
+        XCTAssertTrue(editor.waitForExistence(timeout: 2))
 
-        editor.tap()
         editor.typeText("A note to keep")
+
+        XCTAssertFalse(app.buttons["delete-current-note"].isEnabled)
+        app.buttons["done-editing"].tap()
 
         let delete = app.buttons["delete-current-note"]
         let enabled = NSPredicate(format: "isEnabled == true")
@@ -105,10 +134,13 @@ final class IslandNotesUITests: XCTestCase {
 
     func testArchivingAndSelectingLibraryNoteReturnsItToWorkbench() {
         let app = launchCleanApp()
+        let renderedNote = app.buttons["rendered-note"]
+        XCTAssertTrue(renderedNote.waitForExistence(timeout: 5))
+        renderedNote.tap()
         let editor = app.textViews["current-note-editor"]
-        XCTAssertTrue(editor.waitForExistence(timeout: 5))
-        editor.tap()
+        XCTAssertTrue(editor.waitForExistence(timeout: 2))
         editor.typeText("Old note from library")
+        app.buttons["done-editing"].tap()
 
         let archive = app.buttons["archive-current-note"]
         let enabled = XCTNSPredicateExpectation(
@@ -126,7 +158,62 @@ final class IslandNotesUITests: XCTestCase {
 
         archivedNote.tap()
 
+        XCTAssertTrue(app.buttons["rendered-note"].waitForExistence(timeout: 3))
+        XCTAssertFalse(editor.exists)
+        XCTAssertTrue(app.buttons["rendered-note"].label.contains("Old note from library"))
+    }
+
+    func testDraftSurvivesOpeningAndClosingNoteLibrary() {
+        let app = launchCleanApp()
+        XCTAssertTrue(app.buttons["rendered-note"].waitForExistence(timeout: 5))
+        app.buttons["rendered-note"].tap()
+        let editor = app.textViews["current-note-editor"]
+        XCTAssertTrue(editor.waitForExistence(timeout: 2))
+        editor.typeText("Draft across a sheet")
+
+        app.buttons["open-more-menu"].tap()
+        app.buttons["open-note-library"].tap()
+        XCTAssertTrue(app.otherElements["app-sheet"].waitForExistence(timeout: 3))
+        app.buttons["close-sheet"].tap()
+
         XCTAssertTrue(editor.waitForExistence(timeout: 3))
-        XCTAssertEqual(editor.value as? String, "Old note from library")
+        XCTAssertEqual(editor.value as? String, "Draft across a sheet")
+        XCTAssertFalse(app.buttons["archive-current-note"].isEnabled)
+    }
+
+    func testDraftSurvivesOrdinaryBackgroundAndResume() {
+        let app = launchCleanApp()
+        XCTAssertTrue(app.buttons["rendered-note"].waitForExistence(timeout: 5))
+        app.buttons["rendered-note"].tap()
+        let editor = app.textViews["current-note-editor"]
+        XCTAssertTrue(editor.waitForExistence(timeout: 2))
+        editor.typeText("Draft after background")
+
+        XCUIDevice.shared.press(.home)
+        app.activate()
+
+        XCTAssertTrue(editor.waitForExistence(timeout: 5))
+        XCTAssertEqual(editor.value as? String, "Draft after background")
+    }
+
+    func testEditingStopsAt240CharactersAndRingShowsDraftCount() {
+        let app = launchCleanApp()
+        XCTAssertTrue(app.buttons["rendered-note"].waitForExistence(timeout: 5))
+        app.buttons["rendered-note"].tap()
+        let editor = app.textViews["current-note-editor"]
+        XCTAssertTrue(editor.waitForExistence(timeout: 2))
+
+        editor.typeText(String(repeating: "A", count: 241))
+
+        XCTAssertEqual((editor.value as? String)?.count, 240)
+        app.buttons["character-progress"].tap()
+        XCTAssertTrue(
+            app.descendants(matching: .any)["character-progress-detail"]
+                .waitForExistence(timeout: 2)
+        )
+        XCTAssertEqual(
+            app.buttons["character-progress"].value as? String,
+            "240 used, 0 remaining"
+        )
     }
 }

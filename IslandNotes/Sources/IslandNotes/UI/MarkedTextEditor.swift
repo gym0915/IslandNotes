@@ -3,7 +3,7 @@ import UIKit
 
 struct MarkedTextEditor: UIViewRepresentable {
     let text: String
-    let onChange: (String, Bool) -> Void
+    let onChange: (String, Bool) -> String
 
     func makeCoordinator() -> Coordinator {
         Coordinator(parent: self)
@@ -21,6 +21,9 @@ struct MarkedTextEditor: UIViewRepresentable {
         textView.accessibilityIdentifier = "current-note-editor"
         textView.accessibilityLabel = "Current note"
         textView.accessibilityHint = "Edit the current note"
+        Task { @MainActor [weak textView] in
+            textView?.becomeFirstResponder()
+        }
         return textView
     }
 
@@ -39,7 +42,16 @@ struct MarkedTextEditor: UIViewRepresentable {
         }
 
         func textViewDidChange(_ textView: UITextView) {
-            parent.onChange(textView.text, textView.markedTextRange != nil)
+            let markedTextActive = textView.markedTextRange != nil
+            let acceptedText = parent.onChange(textView.text, markedTextActive)
+            guard !markedTextActive, acceptedText != textView.text else { return }
+
+            let insertionOffset = min(
+                textView.selectedRange.location,
+                acceptedText.utf16.count
+            )
+            textView.text = acceptedText
+            textView.selectedRange = NSRange(location: insertionOffset, length: 0)
         }
     }
 }

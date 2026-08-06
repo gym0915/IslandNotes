@@ -12,7 +12,8 @@ final class DeepLinkUITests: XCTestCase {
         app.launch()
 
         XCTAssertTrue(app.scrollViews["workbench-root"].waitForExistence(timeout: 5))
-        XCTAssertTrue(app.textViews["current-note-editor"].exists)
+        XCTAssertTrue(app.buttons["rendered-note"].exists)
+        XCTAssertFalse(app.textViews["current-note-editor"].exists)
         XCTAssertFalse(app.buttons["toggle-pin"].isEnabled)
     }
 
@@ -25,10 +26,12 @@ final class DeepLinkUITests: XCTestCase {
         ]
         app.launch()
 
+        XCTAssertTrue(app.buttons["rendered-note"].waitForExistence(timeout: 5))
+        app.buttons["rendered-note"].tap()
         let editor = app.textViews["current-note-editor"]
-        XCTAssertTrue(editor.waitForExistence(timeout: 5))
-        editor.tap()
+        XCTAssertTrue(editor.waitForExistence(timeout: 2))
         editor.typeText("最大字号也能操作")
+        app.buttons["done-editing"].tap()
 
         let archive = app.buttons["archive-current-note"]
         XCTAssertTrue(archive.waitForExistence(timeout: 3))
@@ -42,7 +45,9 @@ final class DeepLinkUITests: XCTestCase {
         app.launchArguments = ["--uitesting-reset"]
         app.launch()
 
-        XCTAssertTrue(app.textViews["current-note-editor"].waitForExistence(timeout: 5))
+        XCTAssertTrue(app.buttons["rendered-note"].waitForExistence(timeout: 5))
+        app.buttons["rendered-note"].tap()
+        XCTAssertTrue(app.textViews["current-note-editor"].waitForExistence(timeout: 2))
         XCTAssertEqual(app.textViews["current-note-editor"].label, "Current note")
         XCTAssertEqual(app.buttons["open-more-menu"].label, "More")
         XCTAssertEqual(app.buttons["character-progress"].label, "Character count")
@@ -55,10 +60,12 @@ final class DeepLinkUITests: XCTestCase {
         app.launchArguments = ["--uitesting-reset"]
         app.launch()
 
+        XCTAssertTrue(app.buttons["rendered-note"].waitForExistence(timeout: 5))
+        app.buttons["rendered-note"].tap()
         let editor = app.textViews["current-note-editor"]
-        XCTAssertTrue(editor.waitForExistence(timeout: 5))
-        editor.tap()
+        XCTAssertTrue(editor.waitForExistence(timeout: 2))
         editor.typeText("Simulator live activity")
+        app.buttons["done-editing"].tap()
 
         let toggle = app.buttons["toggle-pin"]
         let enabled = XCTNSPredicateExpectation(
@@ -74,9 +81,11 @@ final class DeepLinkUITests: XCTestCase {
         )
         XCTAssertEqual(XCTWaiter.wait(for: [pinned], timeout: 5), .completed)
 
-        editor.tap()
+        app.buttons["rendered-note"].tap()
+        XCTAssertTrue(editor.waitForExistence(timeout: 2))
         editor.typeText(" updated")
         XCTAssertEqual(editor.value as? String, "Simulator live activity updated")
+        app.buttons["done-editing"].tap()
 
         toggle.tap()
         let unpinned = XCTNSPredicateExpectation(

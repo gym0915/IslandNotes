@@ -35,6 +35,7 @@ private enum PreviewFixtures {
     static func workbench(
         body: String = "",
         pinState: PinState = .unpinned,
+        editingDraft: String? = nil,
         libraryBodies: [String] = [],
         reachedLimit: Bool = false,
         feedback: String? = nil,
@@ -44,6 +45,7 @@ private enum PreviewFixtures {
         let fixture = makeFeature(
             body: body,
             pinState: pinState,
+            editingDraft: editingDraft,
             libraryBodies: libraryBodies,
             reachedLimit: reachedLimit,
             feedback: feedback,
@@ -91,6 +93,7 @@ private enum PreviewFixtures {
     private static func makeFeature(
         body: String,
         pinState: PinState = .unpinned,
+        editingDraft: String? = nil,
         libraryBodies: [String] = [],
         reachedLimit: Bool = false,
         feedback: String? = nil,
@@ -129,6 +132,7 @@ private enum PreviewFixtures {
             records: [current] + library,
             currentNoteID: current.id,
             pinState: pinState,
+            editingDraft: editingDraft,
             didReachCharacterLimit: reachedLimit,
             isCharacterCountVisible: reachedLimit,
             deleteConfirmation: deleting ? .pending(message: "This cannot be undone.") : nil,
@@ -140,6 +144,16 @@ private enum PreviewFixtures {
 
 #Preview("Workbench · Empty") {
     PreviewFixtures.workbench()
+}
+
+#Preview("Workbench · Empty Light") {
+    PreviewFixtures.workbench()
+        .preferredColorScheme(.light)
+}
+
+#Preview("Workbench · Empty Dark") {
+    PreviewFixtures.workbench()
+        .preferredColorScheme(.dark)
 }
 
 #Preview("App Shell · Light") {
@@ -194,6 +208,28 @@ private enum PreviewFixtures {
     PreviewFixtures.workbench(body: "Ship the tiny thing.\n然后去散步 🌿👨‍👩‍👧‍👦")
 }
 
+#Preview("Workbench · Rendered Bullets") {
+    PreviewFixtures.workbench(
+        body: "Plain source line\n- Rendered bullet\n# Literal heading"
+    )
+}
+
+#Preview("Workbench · Editing Source Light") {
+    PreviewFixtures.workbench(
+        body: "Saved source\n- Saved bullet",
+        editingDraft: "Editing source\n- Draft bullet"
+    )
+    .preferredColorScheme(.light)
+}
+
+#Preview("Workbench · Editing Source Dark") {
+    PreviewFixtures.workbench(
+        body: "Saved source\n- Saved bullet",
+        editingDraft: "Editing source\n- Draft bullet"
+    )
+    .preferredColorScheme(.dark)
+}
+
 #Preview("Workbench · 239 Characters") {
     PreviewFixtures.workbench(body: String(repeating: "字", count: 239))
 }
@@ -206,6 +242,22 @@ private enum PreviewFixtures {
     PreviewFixtures.workbench(
         body: String(repeating: "界", count: 240),
         reachedLimit: true
+    )
+}
+
+#Preview("Workbench · Editing at 240") {
+    PreviewFixtures.workbench(
+        body: "Saved value remains unchanged",
+        editingDraft: String(repeating: "界", count: 240),
+        reachedLimit: true
+    )
+}
+
+#Preview("Workbench · Save Error Retains Draft") {
+    PreviewFixtures.workbench(
+        body: "Last committed source",
+        editingDraft: "Unsaved draft stays in the editor",
+        feedback: "Your note hasn't been saved."
     )
 }
 

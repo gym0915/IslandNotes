@@ -33,10 +33,9 @@ struct IslandNotesLiveActivityWidget: Widget {
                 }
 
                 DynamicIslandExpandedRegion(.center) {
-                    Text(context.state.body)
+                    RenderedActivityNoteView(source: context.state.body)
                         .font(.callout)
                         .lineLimit(3)
-                        .multilineTextAlignment(.leading)
                         .frame(maxWidth: .infinity, alignment: .leading)
                 }
 
@@ -87,7 +86,7 @@ private struct LockScreenNoteView: View {
                     .font(.caption.weight(.semibold))
                     .foregroundStyle(.secondary)
 
-                Text(state.body)
+                RenderedActivityNoteView(source: state.body)
                     .font(.body)
                     .lineLimit(3)
                     .frame(maxWidth: .infinity, alignment: .leading)
@@ -95,6 +94,32 @@ private struct LockScreenNoteView: View {
         }
         .padding(16)
         .accessibilityElement(children: .combine)
+    }
+}
+
+private struct RenderedActivityNoteView: View {
+    let source: String
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 2) {
+            ForEach(Array(RenderedNoteContent.lines(from: source).enumerated()), id: \.offset) {
+                _,
+                line in
+                switch line {
+                case let .text(text):
+                    Text(text.isEmpty ? " " : text)
+                case let .bullet(text):
+                    HStack(alignment: .firstTextBaseline, spacing: 5) {
+                        Text("•")
+                            .accessibilityHidden(true)
+                        Text(text.isEmpty ? " " : text)
+                    }
+                    .accessibilityElement(children: .combine)
+                    .accessibilityLabel(text.isEmpty ? "Empty bullet" : "Bullet, \(text)")
+                }
+            }
+        }
+        .multilineTextAlignment(.leading)
     }
 }
 

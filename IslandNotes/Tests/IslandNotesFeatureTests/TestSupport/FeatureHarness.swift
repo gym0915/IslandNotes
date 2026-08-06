@@ -25,10 +25,27 @@ final class FeatureHarness {
     }
 
     static func make(now: Date = Date(timeIntervalSince1970: 1_000)) throws -> FeatureHarness {
-        try make(clock: { now })
+        try make(clock: { now }, characterDetailScheduler: .live)
+    }
+
+    static func make(
+        characterDetailScheduler: CharacterDetailScheduler,
+        now: Date = Date(timeIntervalSince1970: 1_000)
+    ) throws -> FeatureHarness {
+        try make(
+            clock: { now },
+            characterDetailScheduler: characterDetailScheduler
+        )
     }
 
     static func make(clock: @escaping () -> Date) throws -> FeatureHarness {
+        try make(clock: clock, characterDetailScheduler: .live)
+    }
+
+    static func make(
+        clock: @escaping () -> Date,
+        characterDetailScheduler: CharacterDetailScheduler
+    ) throws -> FeatureHarness {
         let configuration = ModelConfiguration(isStoredInMemoryOnly: true)
         let container = try ModelContainer(
             for: NoteRecord.self,
@@ -40,7 +57,8 @@ final class FeatureHarness {
         let workspace = NoteWorkspace(modelContext: context, now: clock)
         let feature = IslandNotesFeature(
             workspace: workspace,
-            liveActivityController: controller
+            liveActivityController: controller,
+            characterDetailScheduler: characterDetailScheduler
         )
         return FeatureHarness(
             container: container,
@@ -72,7 +90,8 @@ final class FeatureHarness {
         )
         let feature = IslandNotesFeature(
             workspace: workspace,
-            liveActivityController: controller
+            liveActivityController: controller,
+            characterDetailScheduler: .live
         )
         return FeatureHarness(
             container: container,
@@ -92,6 +111,7 @@ final class FeatureHarness {
     }
 
     func commitCurrentNote(_ text: String) throws {
+        feature.beginEditing()
         feature.stageEditorText(
             proposedText: text,
             markedTextActive: false

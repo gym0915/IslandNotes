@@ -133,33 +133,58 @@ struct WorkbenchView: View {
 
     private var editorPaper: some View {
         VStack(alignment: .trailing, spacing: IslandDesign.Spacing.x2) {
-            ZStack(alignment: .topLeading) {
-                if feature.editingText.isEmpty {
-                    Text("Write what matters most…")
-                        .font(IslandDesign.Typography.editor)
-                        .foregroundStyle(IslandDesign.Colors.placeholder)
-                        .padding(.top, IslandDesign.Spacing.x1)
-                        .allowsHitTesting(false)
-                }
-                MarkedTextEditor(text: feature.editingText) { proposedText, markedTextActive in
-                    let staged = feature.stageEditorText(
-                        proposedText: proposedText,
-                        markedTextActive: markedTextActive
-                    )
-                    guard !markedTextActive else { return }
-                    Task {
-                        try? feature.persistStagedEditorText(staged.acceptedText)
+            if feature.isEditing {
+                ZStack(alignment: .topLeading) {
+                    if feature.editingText.isEmpty {
+                        Text("Write what matters most…")
+                            .font(IslandDesign.Typography.editor)
+                            .foregroundStyle(IslandDesign.Colors.placeholder)
+                            .padding(.top, IslandDesign.Spacing.x1)
+                            .allowsHitTesting(false)
                     }
+                    MarkedTextEditor(text: feature.editingText) { proposedText, markedTextActive in
+                        feature.stageEditorText(
+                            proposedText: proposedText,
+                            markedTextActive: markedTextActive
+                        ).acceptedText
+                    }
+                    .frame(minHeight: IslandDesign.Sizing.editorMinimumHeight)
                 }
-                .frame(minHeight: IslandDesign.Sizing.editorMinimumHeight)
+            } else {
+                Button(action: feature.beginEditing) {
+                    RenderedNoteView(source: feature.currentNote?.body ?? "")
+                        .frame(
+                            maxWidth: .infinity,
+                            minHeight: IslandDesign.Sizing.editorMinimumHeight,
+                            alignment: .topLeading
+                        )
+                        .contentShape(Rectangle())
+                }
+                .buttonStyle(.plain)
+                .accessibilityIdentifier("rendered-note")
+                .accessibilityHint("Edit the current note source")
             }
 
-            CharacterProgressView(
-                progress: feature.characterProgress,
-                isExpanded: feature.isCharacterCountVisible,
-                didReachLimit: feature.didReachCharacterLimit,
-                reveal: feature.revealCharacterCount
-            )
+            HStack(spacing: IslandDesign.Spacing.x2) {
+                if feature.isEditing {
+                    Button("Done") {
+                        try? feature.completeEditing()
+                    }
+                    .font(IslandDesign.Typography.action)
+                    .buttonStyle(.borderedProminent)
+                    .tint(IslandDesign.Colors.primaryText)
+                    .accessibilityIdentifier("done-editing")
+                }
+
+                Spacer(minLength: IslandDesign.Spacing.x2)
+
+                CharacterProgressView(
+                    progress: feature.characterProgress,
+                    isExpanded: feature.isCharacterCountVisible,
+                    didReachLimit: feature.didReachCharacterLimit,
+                    reveal: feature.revealCharacterCount
+                )
+            }
         }
         .padding(IslandDesign.Spacing.x6)
         .background(IslandDesign.Colors.surface)
@@ -177,5 +202,43 @@ struct WorkbenchView: View {
             x: IslandDesign.Elevation.card.x,
             y: IslandDesign.Elevation.card.y
         )
+    }
+}
+
+private struct RenderedNoteView: View {
+    let source: String
+
+    var body: some View {
+        if source.isEmpty {
+            Text("Write what matters most…")
+                .font(IslandDesign.Typography.editor)
+                .foregroundStyle(IslandDesign.Colors.placeholder)
+        } else {
+            VStack(alignment: .leading, spacing: IslandDesign.Spacing.x2) {
+                ForEach(Array(RenderedNoteContent.lines(from: source).enumerated()), id: \.offset) {
+                    offset,
+                    line in
+                    switch line {
+                    case let .text(text):
+                        Text(text.isEmpty ? " " : text)
+                            .accessibilityLabel(text.isEmpty ? "Blank line" : text)
+                    case let .bullet(text):
+                        HStack(alignment: .firstTextBaseline, spacing: IslandDesign.Spacing.x2) {
+                            Circle()
+                                .fill(IslandDesign.Colors.primaryText)
+                                .frame(width: 5, height: 5)
+                                .accessibilityHidden(true)
+                            Text(text.isEmpty ? " " : text)
+                        }
+                        .accessibilityElement(children: .combine)
+                        .accessibilityLabel(text.isEmpty ? "Empty bullet" : "Bullet, \(text)")
+                        .accessibilityIdentifier("rendered-bullet-\(offset)")
+                    }
+                }
+            }
+            .font(IslandDesign.Typography.editor)
+            .foregroundStyle(IslandDesign.Colors.primaryText)
+            .frame(maxWidth: .infinity, alignment: .leading)
+        }
     }
 }

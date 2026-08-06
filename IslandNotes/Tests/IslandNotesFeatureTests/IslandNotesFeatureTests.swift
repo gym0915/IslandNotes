@@ -25,6 +25,117 @@ final class IslandNotesFeatureTests: XCTestCase {
         XCTAssertEqual(workbenches.count, 1)
         XCTAssertEqual(workbenches.first?.currentNoteID, current.id)
         XCTAssertTrue(harness.controller.activeActivities.isEmpty)
+        XCTAssertFalse(harness.feature.isEditing)
+        XCTAssertNil(harness.feature.editingDraft)
+    }
+
+    func testBeginningAndStagingAnEditChangesOnlyTheInMemoryDraft() async throws {
+        let harness = try FeatureHarness.make()
+        try await harness.feature.bootstrap()
+        try harness.commitCurrentNote("Committed source\n- first")
+        let committedVersion = try XCTUnwrap(harness.feature.currentNote?.contentVersion)
+
+        harness.feature.beginEditing()
+        let result = harness.feature.stageEditorText(
+            proposedText: "Draft source\n- second",
+            markedTextActive: false
+        )
+
+        XCTAssertTrue(harness.feature.isEditing)
+        XCTAssertEqual(harness.feature.editingDraft, "Draft source\n- second")
+        XCTAssertEqual(result.acceptedText, "Draft source\n- second")
+        XCTAssertEqual(harness.feature.currentNote?.body, "Committed source\n- first")
+        XCTAssertEqual(harness.feature.currentNote?.contentVersion, committedVersion)
+        XCTAssertEqual(try harness.notes().first?.body, "Committed source\n- first")
+        XCTAssertEqual(try harness.notes().first?.contentVersion, committedVersion)
+    }
+
+    func testDoneCommitsDraftUpdatesVersionAndReturnsToDisplay() async throws {
+        let harness = try FeatureHarness.make()
+        try await harness.feature.bootstrap()
+        let originalVersion = try XCTUnwrap(harness.feature.currentNote?.contentVersion)
+
+        harness.feature.beginEditing()
+        harness.feature.stageEditorText(
+            proposedText: "Committed with Done",
+            markedTextActive: false
+        )
+        try harness.feature.completeEditing()
+
+        XCTAssertFalse(harness.feature.isEditing)
+        XCTAssertNil(harness.feature.editingDraft)
+        XCTAssertEqual(harness.feature.currentNote?.body, "Committed with Done")
+        XCTAssertEqual(harness.feature.currentNote?.contentVersion, originalVersion + 1)
+        XCTAssertEqual(try harness.notes().first?.body, "Committed with Done")
+        XCTAssertEqual(try harness.notes().first?.contentVersion, originalVersion + 1)
+    }
+
+    func testFailedDoneKeepsExactDraftAndEditingState() async throws {
+        let storeCopy = try LegacyStoreFixture.copy()
+        let harness = try storeCopy.makeHarness(allowsSave: false)
+        try await harness.feature.bootstrap()
+        let committed = try XCTUnwrap(harness.feature.currentNote)
+        let draft = "Unsaved draft\n- still here 👨‍👩‍👧‍👦"
+        harness.feature.beginEditing()
+        harness.feature.stageEditorText(
+            proposedText: draft,
+            markedTextActive: false
+        )
+        var saveError: NSError?
+
+        do {
+            try harness.feature.completeEditing()
+        } catch {
+            saveError = error as NSError
+        }
+
+        XCTAssertEqual(saveError?.domain, NSCocoaErrorDomain)
+        XCTAssertEqual(saveError?.code, NSFileWriteNoPermissionError)
+        XCTAssertTrue(harness.feature.isEditing)
+        XCTAssertEqual(harness.feature.editingDraft, draft)
+        XCTAssertEqual(harness.feature.currentNote, committed)
+        XCTAssertEqual(try harness.notes().first(where: { $0.id == committed.id })?.body, committed.body)
+        XCTAssertEqual(harness.feature.feedbackMessage, "Your note hasn't been saved.")
+    }
+
+    func testForegroundReconciliationDoesNotDiscardOrCommitAnEditingDraft() async throws {
+        let harness = try FeatureHarness.make()
+        try await harness.feature.bootstrap()
+        try harness.commitCurrentNote("Committed before background")
+        harness.feature.beginEditing()
+        harness.feature.stageEditorText(
+            proposedText: "Draft survives foreground reconciliation",
+            markedTextActive: false
+        )
+
+        await harness.feature.reconcileActivities()
+
+        XCTAssertTrue(harness.feature.isEditing)
+        XCTAssertEqual(harness.feature.editingDraft, "Draft survives foreground reconciliation")
+        XCTAssertEqual(harness.feature.currentNote?.body, "Committed before background")
+        XCTAssertEqual(try harness.notes().first?.body, "Committed before background")
+    }
+
+    func testRecreatingFeatureDropsDraftAndRestoresOnlyCommittedSource() async throws {
+        let harness = try FeatureHarness.make()
+        try await harness.feature.bootstrap()
+        try harness.commitCurrentNote("Persisted source")
+        harness.feature.beginEditing()
+        harness.feature.stageEditorText(
+            proposedText: "Uncommitted draft",
+            markedTextActive: false
+        )
+
+        let recreatedFeature = IslandNotesFeature(
+            modelContext: harness.context,
+            liveActivityController: harness.controller
+        )
+        try await recreatedFeature.bootstrap()
+
+        XCTAssertFalse(recreatedFeature.isEditing)
+        XCTAssertNil(recreatedFeature.editingDraft)
+        XCTAssertEqual(recreatedFeature.currentNote?.body, "Persisted source")
+        XCTAssertEqual(harness.feature.editingDraft, "Uncommitted draft")
     }
 
     func testCommittedTextRestoresVerbatimAfterFeatureRecreation() async throws {

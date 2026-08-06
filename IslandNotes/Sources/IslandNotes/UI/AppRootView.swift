@@ -17,7 +17,8 @@ struct AppRootView: View {
         _feature = State(
             initialValue: IslandNotesFeature(
                 workspace: workspace,
-                liveActivityController: liveActivityController
+                liveActivityController: liveActivityController,
+                characterDetailScheduler: .live
             )
         )
     }

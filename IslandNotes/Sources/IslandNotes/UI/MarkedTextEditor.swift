@@ -13,9 +13,16 @@ struct MarkedTextEditor: UIViewRepresentable {
         let textView = UITextView()
         textView.delegate = context.coordinator
         textView.backgroundColor = .clear
-        textView.font = .preferredFont(forTextStyle: .title2)
+        textView.font = .preferredFont(
+            forTextStyle: IslandDesign.Typography.editorTextStyle
+        )
         textView.adjustsFontForContentSizeCategory = true
-        textView.textContainerInset = UIEdgeInsets(top: 4, left: 0, bottom: 4, right: 0)
+        textView.textContainerInset = UIEdgeInsets(
+            top: IslandDesign.Spacing.x1,
+            left: .zero,
+            bottom: IslandDesign.Spacing.x1,
+            right: .zero
+        )
         textView.textContainer.lineFragmentPadding = 0
         textView.keyboardDismissMode = .interactive
         textView.accessibilityIdentifier = "current-note-editor"

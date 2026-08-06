@@ -83,12 +83,51 @@ final class IslandNotesUITests: XCTestCase {
     func testEmptyWorkbenchExposesDisplaySurfaceLibraryAndDisabledActions() {
         let app = launchCleanApp()
 
+        let productTitle = app.staticTexts["Island Notes"]
+        XCTAssertTrue(productTitle.waitForExistence(timeout: 5))
+        XCTAssertTrue(app.staticTexts["Not Live"].exists)
         XCTAssertTrue(app.buttons["rendered-note"].waitForExistence(timeout: 5))
         XCTAssertFalse(app.textViews["current-note-editor"].exists)
-        XCTAssertTrue(app.buttons["open-more-menu"].exists)
+        let moreButton = app.buttons["open-more-menu"]
+        XCTAssertTrue(moreButton.exists)
+        XCTAssertFalse(productTitle.frame.intersects(moreButton.frame))
         XCTAssertFalse(app.buttons["archive-current-note"].isEnabled)
         XCTAssertFalse(app.buttons["toggle-pin"].isEnabled)
         XCTAssertFalse(app.buttons["delete-current-note"].isEnabled)
+
+        let progress = app.buttons["character-progress"]
+        XCTAssertGreaterThanOrEqual(progress.frame.width, 44)
+        XCTAssertGreaterThanOrEqual(progress.frame.height, 44)
+        XCTAssertEqual(progress.value as? String, "0 used, 240 remaining")
+    }
+
+    func testTappingDisplaySurfaceOpensExactSourceEditorAndDoneAction() {
+        let app = launchCleanApp()
+
+        let editor = beginWorkbenchEditing(in: app)
+
+        XCTAssertTrue(editor.exists)
+        XCTAssertFalse(app.buttons["rendered-note"].exists)
+        XCTAssertTrue(app.buttons["done-editing"].exists)
+    }
+
+    func testHeaderAndActionsRemainReachableAtMaximumDynamicType() {
+        let app = XCUIApplication()
+        app.launchArguments = [
+            "--uitesting-reset",
+            "-UIPreferredContentSizeCategoryName",
+            "UICTContentSizeCategoryAccessibilityExtraExtraExtraLarge",
+        ]
+        app.launch()
+
+        let productTitle = app.staticTexts["Island Notes"]
+        let moreButton = app.buttons["open-more-menu"]
+        XCTAssertTrue(productTitle.waitForExistence(timeout: 5))
+        XCTAssertTrue(moreButton.exists)
+        XCTAssertFalse(productTitle.frame.intersects(moreButton.frame))
+        XCTAssertTrue(app.buttons["archive-current-note"].exists)
+        XCTAssertTrue(app.buttons["toggle-pin"].exists)
+        XCTAssertTrue(app.buttons["delete-current-note"].exists)
     }
 
     func testEditingEnablesActionsAndDeleteShowsIrreversibleConfirmation() {
@@ -105,7 +144,25 @@ final class IslandNotesUITests: XCTestCase {
         let enabledExpectation = XCTNSPredicateExpectation(predicate: enabled, object: delete)
         XCTAssertEqual(XCTWaiter.wait(for: [enabledExpectation], timeout: 3), .completed)
         XCTAssertTrue(app.buttons["archive-current-note"].isEnabled)
-        XCTAssertTrue(app.buttons["toggle-pin"].isEnabled)
+        let toggleLive = app.buttons["toggle-pin"]
+        XCTAssertTrue(toggleLive.isEnabled)
+
+        toggleLive.tap()
+        let liveAction = XCTNSPredicateExpectation(
+            predicate: NSPredicate(format: "label == %@", "Live"),
+            object: toggleLive
+        )
+        XCTAssertEqual(XCTWaiter.wait(for: [liveAction], timeout: 5), .completed)
+        let liveHeaderStatus = app.staticTexts["Live"].firstMatch
+        XCTAssertTrue(liveHeaderStatus.waitForExistence(timeout: 2))
+        XCTAssertLessThan(
+            liveHeaderStatus.frame.maxY,
+            app.buttons["rendered-note"].frame.minY
+        )
+
+        toggleLive.tap()
+        let notLiveStatus = app.staticTexts["Not Live"]
+        XCTAssertTrue(notLiveStatus.waitForExistence(timeout: 5))
 
         delete.tap()
 
@@ -195,6 +252,10 @@ final class IslandNotesUITests: XCTestCase {
             app.buttons["character-progress"].value as? String,
             "240 used, 0 remaining"
         )
+        XCTAssertEqual(
+            app.buttons["character-progress"].label,
+            "Character limit reached"
+        )
     }
 
     func testFailedDoneKeepsEditorDraftAndShowsSaveFeedback() {
@@ -212,6 +273,9 @@ final class IslandNotesUITests: XCTestCase {
         XCTAssertTrue(editor.waitForExistence(timeout: 3))
         XCTAssertEqual(editor.value as? String, "Last committed source + unsaved")
         XCTAssertFalse(renderedNote.exists)
-        XCTAssertTrue(app.staticTexts["Your note hasn't been saved."].exists)
+        let feedback = app.descendants(matching: .any)["transient-feedback"]
+        XCTAssertTrue(feedback.waitForExistence(timeout: 2))
+        XCTAssertEqual(feedback.label, "Recoverable message")
+        XCTAssertEqual(feedback.value as? String, "Your note hasn't been saved.")
     }
 }

@@ -5,31 +5,48 @@ struct ActionDock: View {
 
     var body: some View {
         ViewThatFits(in: .horizontal) {
-            HStack(spacing: IslandDesign.Spacing.x2) { actionButtons }
-            VStack(spacing: IslandDesign.Spacing.x2) { actionButtons }
+            HStack(spacing: IslandDesign.Spacing.x4) {
+                compactIconAction(moveAction)
+
+                Spacer(minLength: IslandDesign.Spacing.x2)
+                liveAction
+                Spacer(minLength: IslandDesign.Spacing.x2)
+
+                compactIconAction(deleteAction)
+            }
+
+            VStack(spacing: IslandDesign.Spacing.x2) {
+                expandedAction(moveAction)
+                liveAction
+                expandedAction(deleteAction)
+            }
         }
     }
 
-    @ViewBuilder
-    private var actionButtons: some View {
-        ActionButton(
+    private var moveAction: DockAction {
+        DockAction(
             title: "Move to Note Library",
             icon: .moveToLibrary,
             identifier: "archive-current-note",
-            role: nil,
-            isEnabled: feature.canArchive
-        ) {
-            Task { try? await feature.archiveCurrentNote() }
-        }
+            kind: .neutral,
+            isEnabled: feature.canArchive,
+            perform: { Task { try? await feature.archiveCurrentNote() } }
+        )
+    }
 
-        ActionButton(
-            title: feature.pinState == .pinned ? "Live" : "Go Live",
-            icon: .live,
-            identifier: "toggle-pin",
-            role: nil,
-            isEnabled: feature.pinState == .pinned || feature.canPin,
-            isProminent: feature.pinState == .pinned
-        ) {
+    private var deleteAction: DockAction {
+        DockAction(
+            title: "Delete Note",
+            icon: .delete,
+            identifier: "delete-current-note",
+            kind: .destructive,
+            isEnabled: feature.canDelete,
+            perform: feature.requestDelete
+        )
+    }
+
+    private var liveAction: some View {
+        Button {
             Task {
                 if feature.pinState == .pinned {
                     await feature.cancelPinning()
@@ -37,42 +54,64 @@ struct ActionDock: View {
                     await feature.startPinning()
                 }
             }
+        } label: {
+            if feature.pinState == .pinned {
+                Text("Live")
+            } else {
+                HStack(spacing: IslandDesign.Spacing.x2) {
+                    AppIconView(icon: .live, size: IslandDesign.Sizing.smallIcon)
+                    Text("Go Live")
+                }
+            }
         }
+        .buttonStyle(
+            IslandButtonStyle(kind: feature.pinState == .pinned ? .live : .neutral)
+        )
+        .disabled(feature.pinState != .pinned && !feature.canPin)
+        .accessibilityIdentifier("toggle-pin")
+        .accessibilityLabel(feature.pinState == .pinned ? "Live" : "Go Live")
+        .accessibilityHint(
+            feature.pinState == .pinned
+                ? "Stops showing the current note on system surfaces"
+                : disabledActionHint(isEnabled: feature.canPin)
+        )
+    }
 
-        ActionButton(
-            title: "Delete Note",
-            icon: .delete,
-            identifier: "delete-current-note",
-            role: .destructive,
-            isEnabled: feature.canDelete
-        ) {
-            feature.requestDelete()
+    private func compactIconAction(_ action: DockAction) -> some View {
+        IslandIconButton(
+            icon: action.icon,
+            label: action.title,
+            action: action.perform
+        )
+        .disabled(!action.isEnabled)
+        .accessibilityIdentifier(action.identifier)
+        .accessibilityHint(disabledActionHint(isEnabled: action.isEnabled))
+    }
+
+    private func expandedAction(_ action: DockAction) -> some View {
+        Button(action: action.perform) {
+            HStack(spacing: IslandDesign.Spacing.x2) {
+                AppIconView(icon: action.icon, size: IslandDesign.Sizing.smallIcon)
+                Text(action.title)
+            }
+            .frame(maxWidth: .infinity)
         }
+        .buttonStyle(IslandButtonStyle(kind: action.kind))
+        .disabled(!action.isEnabled)
+        .accessibilityIdentifier(action.identifier)
+        .accessibilityHint(disabledActionHint(isEnabled: action.isEnabled))
+    }
+
+    private func disabledActionHint(isEnabled: Bool) -> String {
+        isEnabled ? "" : "The current note needs non-whitespace text"
     }
 }
 
-private struct ActionButton: View {
+private struct DockAction {
     let title: String
     let icon: AppIcon
     let identifier: String
-    let role: ButtonRole?
+    let kind: IslandActionKind
     let isEnabled: Bool
-    var isProminent = false
-    let action: () -> Void
-
-    var body: some View {
-        Button(role: role, action: action) {
-            HStack(spacing: IslandDesign.Spacing.x2) {
-                AppIconView(icon: icon, size: IslandDesign.Sizing.smallIcon)
-                Text(title)
-            }
-                .font(IslandDesign.Typography.action)
-                .frame(maxWidth: .infinity, minHeight: IslandDesign.Sizing.actionHeight)
-        }
-        .buttonStyle(.bordered)
-        .tint(isProminent ? IslandDesign.Colors.live : nil)
-        .disabled(!isEnabled)
-        .accessibilityIdentifier(identifier)
-        .accessibilityHint(isEnabled ? "" : "The current note needs non-whitespace text")
-    }
+    let perform: () -> Void
 }

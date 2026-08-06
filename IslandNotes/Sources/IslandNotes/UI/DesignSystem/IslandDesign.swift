@@ -82,6 +82,7 @@ enum IslandDesign {
         static let action = Font.system(.subheadline, design: .default, weight: .semibold)
         static let feedback = Font.system(.footnote, design: .default, weight: .semibold)
         static let editor = noteBody
+        static let editorTextStyle: UIFont.TextStyle = .title2
     }
 
     enum Spacing {

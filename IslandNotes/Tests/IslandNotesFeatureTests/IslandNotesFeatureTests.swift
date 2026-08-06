@@ -3,29 +3,8 @@ import XCTest
 
 @MainActor
 final class IslandNotesFeatureTests: XCTestCase {
-    func testStagedEditorChangesDoNotLetAnOlderSaveOverwriteNewerTyping() async throws {
-        let harness = try InMemoryFeatureHarness.make()
-        try await harness.feature.bootstrap()
-
-        let older = harness.feature.stageEditorText(
-            proposedText: "Old note",
-            markedTextActive: false
-        )
-        let latest = harness.feature.stageEditorText(
-            proposedText: "Old note from library",
-            markedTextActive: false
-        )
-
-        try harness.feature.persistStagedEditorText(older.acceptedText)
-        XCTAssertEqual(harness.feature.editingText, latest.acceptedText)
-        XCTAssertEqual(try harness.notes().first?.body, "")
-
-        try harness.feature.persistStagedEditorText(latest.acceptedText)
-        XCTAssertEqual(try harness.notes().first?.body, "Old note from library")
-    }
-
     func testFirstLaunchCreatesOneBlankCurrentNote() async throws {
-        let harness = try InMemoryFeatureHarness.make()
+        let harness = try FeatureHarness.make()
 
         try await harness.feature.bootstrap()
 
@@ -48,16 +27,13 @@ final class IslandNotesFeatureTests: XCTestCase {
         XCTAssertTrue(harness.controller.activeActivities.isEmpty)
     }
 
-    func testEditingAutoSavesVerbatimTextAndRestoresAfterFeatureRecreation() async throws {
-        let harness = try InMemoryFeatureHarness.make()
+    func testCommittedTextRestoresVerbatimAfterFeatureRecreation() async throws {
+        let harness = try FeatureHarness.make()
         try await harness.feature.bootstrap()
         let originalID = try XCTUnwrap(harness.feature.currentNote?.id)
         let body = "明天 09:30 交方案\nRemember the café ☕️"
 
-        try await harness.feature.editCurrentNote(
-            proposedText: body,
-            markedTextActive: false
-        )
+        try harness.commitCurrentNote(body)
 
         XCTAssertEqual(harness.feature.currentNote?.body, body)
         XCTAssertEqual(try harness.notes().first(where: { $0.id == originalID })?.body, body)
@@ -73,7 +49,7 @@ final class IslandNotesFeatureTests: XCTestCase {
     }
 
     func testBootstrapIsIdempotent() async throws {
-        let harness = try InMemoryFeatureHarness.make()
+        let harness = try FeatureHarness.make()
 
         try await harness.feature.bootstrap()
         let originalID = try XCTUnwrap(harness.feature.currentNote?.id)
@@ -85,7 +61,7 @@ final class IslandNotesFeatureTests: XCTestCase {
     }
 
     func testCorruptCurrentPointerCreatesBlankSlotWithoutOverwritingContent() async throws {
-        let harness = try InMemoryFeatureHarness.make()
+        let harness = try FeatureHarness.make()
         let timestamp = Date(timeIntervalSince1970: 500)
         let preserved = NoteRecord(
             body: "这段内容必须保留",

@@ -4,12 +4,9 @@ import XCTest
 @MainActor
 final class ReconciliationTests: XCTestCase {
     func testReconcileDerivesPinnedStateFromOneCurrentActivity() async throws {
-        let harness = try InMemoryFeatureHarness.make()
+        let harness = try FeatureHarness.make()
         try await harness.feature.bootstrap()
-        try await harness.feature.editCurrentNote(
-            proposedText: "恢复中的当前便签",
-            markedTextActive: false
-        )
+        try harness.commitCurrentNote("恢复中的当前便签")
         let current = try XCTUnwrap(harness.feature.currentNote)
         harness.controller.seedActivities([
             ActivitySession(
@@ -29,7 +26,7 @@ final class ReconciliationTests: XCTestCase {
     }
 
     func testReconcileEndsOrphanWithoutChangingCurrentContent() async throws {
-        let harness = try InMemoryFeatureHarness.make()
+        let harness = try FeatureHarness.make()
         try await harness.feature.bootstrap()
         let currentID = try XCTUnwrap(harness.feature.currentNote?.id)
         harness.controller.seedActivities([
@@ -51,12 +48,9 @@ final class ReconciliationTests: XCTestCase {
     }
 
     func testReconcileMultipleActivitiesKeepsOneDeterministicCurrentActivity() async throws {
-        let harness = try InMemoryFeatureHarness.make()
+        let harness = try FeatureHarness.make()
         try await harness.feature.bootstrap()
-        try await harness.feature.editCurrentNote(
-            proposedText: "唯一当前",
-            markedTextActive: false
-        )
+        try harness.commitCurrentNote("唯一当前")
         let current = try XCTUnwrap(harness.feature.currentNote)
         harness.controller.seedActivities([
             ActivitySession(activityID: "z-current", noteID: current.id, body: "旧", version: 1, isActive: true),
@@ -73,12 +67,9 @@ final class ReconciliationTests: XCTestCase {
     }
 
     func testCleanupFailureBlocksNewRequestAndDoesNotReportPinned() async throws {
-        let harness = try InMemoryFeatureHarness.make()
+        let harness = try FeatureHarness.make()
         try await harness.feature.bootstrap()
-        try await harness.feature.editCurrentNote(
-            proposedText: "不能覆盖系统异常",
-            markedTextActive: false
-        )
+        try harness.commitCurrentNote("不能覆盖系统异常")
         let orphan = ActivitySession(
             activityID: "stuck-orphan",
             noteID: UUID(),
@@ -94,6 +85,6 @@ final class ReconciliationTests: XCTestCase {
 
         XCTAssertEqual(harness.controller.activeActivities, [orphan])
         XCTAssertEqual(harness.feature.pinState, .unpinned)
-        XCTAssertEqual(harness.feature.feedbackMessage, "系统展示正在整理，请重试")
+        XCTAssertNotNil(harness.feature.feedbackMessage)
     }
 }

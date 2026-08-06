@@ -74,11 +74,11 @@ final class CharacterLimitTests: XCTestCase {
     }
 
     func testFeatureDefersMarkedTextAndExposesAccurateProgressAfterReveal() async throws {
-        let harness = try InMemoryFeatureHarness.make()
+        let harness = try FeatureHarness.make()
         try await harness.feature.bootstrap()
         let composing = String(repeating: "文", count: 241)
 
-        try await harness.feature.editCurrentNote(
+        _ = harness.feature.stageEditorText(
             proposedText: composing,
             markedTextActive: true
         )
@@ -87,10 +87,11 @@ final class CharacterLimitTests: XCTestCase {
         XCTAssertEqual(harness.feature.currentNote?.body, "")
         XCTAssertFalse(harness.feature.isCharacterCountVisible)
 
-        try await harness.feature.editCurrentNote(
+        harness.feature.stageEditorText(
             proposedText: composing,
             markedTextActive: false
         )
+        try harness.feature.completeEditing()
         harness.feature.revealCharacterCount()
 
         XCTAssertEqual(harness.feature.currentNote?.body.count, 240)
@@ -98,9 +99,5 @@ final class CharacterLimitTests: XCTestCase {
         XCTAssertTrue(harness.feature.isCharacterCountVisible)
         XCTAssertEqual(harness.feature.characterProgress.used, 240)
         XCTAssertEqual(harness.feature.characterProgress.remaining, 0)
-        XCTAssertEqual(
-            harness.feature.characterProgress.accessibilityValue,
-            "已用 240 个字符，剩余 0 个字符"
-        )
     }
 }

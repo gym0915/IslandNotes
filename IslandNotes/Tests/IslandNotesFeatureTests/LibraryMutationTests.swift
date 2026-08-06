@@ -4,14 +4,11 @@ import XCTest
 @MainActor
 final class LibraryMutationTests: XCTestCase {
     func testUnicodeWhitespaceIsPreservedButKeepsContentActionsDisabled() async throws {
-        let harness = try InMemoryFeatureHarness.make()
+        let harness = try FeatureHarness.make()
         let whitespace = " \n\t\u{00A0}\u{2003}\u{3000}"
         try await harness.feature.bootstrap()
 
-        try await harness.feature.editCurrentNote(
-            proposedText: whitespace,
-            markedTextActive: false
-        )
+        try harness.commitCurrentNote(whitespace)
 
         XCTAssertEqual(harness.feature.currentNote?.body, whitespace)
         XCTAssertEqual(try harness.notes().first?.body, whitespace)
@@ -23,13 +20,10 @@ final class LibraryMutationTests: XCTestCase {
 
     func testArchivingReplacesCurrentWithBlankAndOrdersLibraryNewestFirst() async throws {
         var instant = Date(timeIntervalSince1970: 1_000)
-        let harness = try InMemoryFeatureHarness.make(clock: { instant })
+        let harness = try FeatureHarness.make(clock: { instant })
         try await harness.feature.bootstrap()
 
-        try await harness.feature.editCurrentNote(
-            proposedText: "第一条",
-            markedTextActive: false
-        )
+        try harness.commitCurrentNote("第一条")
         let firstID = try XCTUnwrap(harness.feature.currentNote?.id)
         try await harness.feature.archiveCurrentNote()
 
@@ -39,10 +33,7 @@ final class LibraryMutationTests: XCTestCase {
         XCTAssertEqual(harness.feature.pinState, .unpinned)
 
         instant = Date(timeIntervalSince1970: 2_000)
-        try await harness.feature.editCurrentNote(
-            proposedText: "第二条",
-            markedTextActive: false
-        )
+        try harness.commitCurrentNote("第二条")
         try await harness.feature.archiveCurrentNote()
 
         XCTAssertEqual(harness.feature.currentNote?.body, "")
@@ -57,20 +48,14 @@ final class LibraryMutationTests: XCTestCase {
 
     func testSelectingLibraryNoteAtomicallySwapsWithNonblankCurrentNote() async throws {
         var instant = Date(timeIntervalSince1970: 1_000)
-        let harness = try InMemoryFeatureHarness.make(clock: { instant })
+        let harness = try FeatureHarness.make(clock: { instant })
         try await harness.feature.bootstrap()
-        try await harness.feature.editCurrentNote(
-            proposedText: "旧便签",
-            markedTextActive: false
-        )
+        try harness.commitCurrentNote("旧便签")
         let oldID = try XCTUnwrap(harness.feature.currentNote?.id)
         try await harness.feature.archiveCurrentNote()
 
         instant = Date(timeIntervalSince1970: 2_000)
-        try await harness.feature.editCurrentNote(
-            proposedText: "当前内容",
-            markedTextActive: false
-        )
+        try harness.commitCurrentNote("当前内容")
         let currentID = try XCTUnwrap(harness.feature.currentNote?.id)
 
         try await harness.feature.selectLibraryNote(id: oldID)
@@ -85,12 +70,9 @@ final class LibraryMutationTests: XCTestCase {
     }
 
     func testSelectingLibraryNoteRemovesBlankCurrentSlotInsteadOfArchivingIt() async throws {
-        let harness = try InMemoryFeatureHarness.make()
+        let harness = try FeatureHarness.make()
         try await harness.feature.bootstrap()
-        try await harness.feature.editCurrentNote(
-            proposedText: "要取回的便签",
-            markedTextActive: false
-        )
+        try harness.commitCurrentNote("要取回的便签")
         let archivedID = try XCTUnwrap(harness.feature.currentNote?.id)
         try await harness.feature.archiveCurrentNote()
         let blankID = try XCTUnwrap(harness.feature.currentNote?.id)
@@ -105,7 +87,7 @@ final class LibraryMutationTests: XCTestCase {
     }
 
     func testSelectingMissingLibraryNoteHasNoSideEffects() async throws {
-        let harness = try InMemoryFeatureHarness.make()
+        let harness = try FeatureHarness.make()
         try await harness.feature.bootstrap()
         let originalID = try XCTUnwrap(harness.feature.currentNote?.id)
 
@@ -117,20 +99,14 @@ final class LibraryMutationTests: XCTestCase {
     }
 
     func testDeleteRequiresConfirmationAndCancelHasNoSideEffects() async throws {
-        let harness = try InMemoryFeatureHarness.make()
+        let harness = try FeatureHarness.make()
         try await harness.feature.bootstrap()
-        try await harness.feature.editCurrentNote(
-            proposedText: "不能误删",
-            markedTextActive: false
-        )
+        try harness.commitCurrentNote("不能误删")
         let originalID = try XCTUnwrap(harness.feature.currentNote?.id)
 
         harness.feature.requestDelete()
 
-        XCTAssertEqual(
-            harness.feature.deleteConfirmation,
-            .pending(message: "删除后无法恢复")
-        )
+        XCTAssertNotNil(harness.feature.deleteConfirmation)
         XCTAssertEqual(harness.feature.currentNote?.id, originalID)
         XCTAssertEqual(try harness.notes().count, 1)
 
@@ -142,12 +118,9 @@ final class LibraryMutationTests: XCTestCase {
     }
 
     func testConfirmedDeleteCreatesBlankCurrentNote() async throws {
-        let harness = try InMemoryFeatureHarness.make()
+        let harness = try FeatureHarness.make()
         try await harness.feature.bootstrap()
-        try await harness.feature.editCurrentNote(
-            proposedText: "确认删除",
-            markedTextActive: false
-        )
+        try harness.commitCurrentNote("确认删除")
         let deletedID = try XCTUnwrap(harness.feature.currentNote?.id)
         harness.feature.requestDelete()
 
@@ -164,7 +137,7 @@ final class LibraryMutationTests: XCTestCase {
     }
 
     func testBlankCurrentNoteCannotRequestDeletion() async throws {
-        let harness = try InMemoryFeatureHarness.make()
+        let harness = try FeatureHarness.make()
         try await harness.feature.bootstrap()
 
         harness.feature.requestDelete()

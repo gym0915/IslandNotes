@@ -66,4 +66,5 @@ final class ActivityPayloadTests: XCTestCase {
             XCTAssertEqual(maximumBytes, 4_096)
         }
     }
+
 }

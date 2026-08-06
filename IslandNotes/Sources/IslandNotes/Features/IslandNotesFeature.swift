@@ -154,6 +154,10 @@ final class IslandNotesFeature {
         }
     }
 
+    func completeEditing() throws {
+        try persistStagedEditorText(editingText)
+    }
+
     func revealCharacterCount() {
         isCharacterCountVisible = true
     }

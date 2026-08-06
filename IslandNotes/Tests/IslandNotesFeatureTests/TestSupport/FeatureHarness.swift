@@ -3,7 +3,7 @@ import SwiftData
 @testable import IslandNotes
 
 @MainActor
-final class InMemoryFeatureHarness {
+final class FeatureHarness {
     let container: ModelContainer
     let context: ModelContext
     let controller: FakeLiveActivityController
@@ -21,11 +21,11 @@ final class InMemoryFeatureHarness {
         self.feature = feature
     }
 
-    static func make(now: Date = Date(timeIntervalSince1970: 1_000)) throws -> InMemoryFeatureHarness {
+    static func make(now: Date = Date(timeIntervalSince1970: 1_000)) throws -> FeatureHarness {
         try make(clock: { now })
     }
 
-    static func make(clock: @escaping () -> Date) throws -> InMemoryFeatureHarness {
+    static func make(clock: @escaping () -> Date) throws -> FeatureHarness {
         let configuration = ModelConfiguration(isStoredInMemoryOnly: true)
         let container = try ModelContainer(
             for: NoteRecord.self,
@@ -39,7 +39,35 @@ final class InMemoryFeatureHarness {
             liveActivityController: controller,
             now: clock
         )
-        return InMemoryFeatureHarness(
+        return FeatureHarness(
+            container: container,
+            context: context,
+            controller: controller,
+            feature: feature
+        )
+    }
+
+    static func make(
+        storeURL: URL,
+        allowsSave: Bool
+    ) throws -> FeatureHarness {
+        let configuration = ModelConfiguration(
+            url: storeURL,
+            allowsSave: allowsSave
+        )
+        let container = try ModelContainer(
+            for: NoteRecord.self,
+            WorkbenchRecord.self,
+            configurations: configuration
+        )
+        let context = ModelContext(container)
+        let controller = FakeLiveActivityController()
+        let feature = IslandNotesFeature(
+            modelContext: context,
+            liveActivityController: controller,
+            now: { Date(timeIntervalSince1970: 9_000) }
+        )
+        return FeatureHarness(
             container: container,
             context: context,
             controller: controller,
@@ -53,5 +81,13 @@ final class InMemoryFeatureHarness {
 
     func workbenches() throws -> [WorkbenchRecord] {
         try context.fetch(FetchDescriptor<WorkbenchRecord>())
+    }
+
+    func commitCurrentNote(_ text: String) throws {
+        feature.stageEditorText(
+            proposedText: text,
+            markedTextActive: false
+        )
+        try feature.completeEditing()
     }
 }

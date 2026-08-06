@@ -101,24 +101,7 @@ private struct RenderedActivityNoteView: View {
     let source: String
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 2) {
-            ForEach(Array(RenderedNoteContent.lines(from: source).enumerated()), id: \.offset) {
-                _,
-                line in
-                switch line {
-                case let .text(text):
-                    Text(text.isEmpty ? " " : text)
-                case let .bullet(text):
-                    HStack(alignment: .firstTextBaseline, spacing: 5) {
-                        Text("•")
-                            .accessibilityHidden(true)
-                        Text(text.isEmpty ? " " : text)
-                    }
-                    .accessibilityElement(children: .combine)
-                    .accessibilityLabel(text.isEmpty ? "Empty bullet" : "Bullet, \(text)")
-                }
-            }
-        }
+        Text(RenderedNoteContent.displayString(from: source))
         .multilineTextAlignment(.leading)
     }
 }

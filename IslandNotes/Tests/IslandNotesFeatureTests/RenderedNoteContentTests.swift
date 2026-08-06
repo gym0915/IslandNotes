@@ -35,4 +35,13 @@ final class RenderedNoteContentTests: XCTestCase {
             [.text("First"), .text(""), .text("")]
         )
     }
+
+    func testDisplayStringUsesBulletGlyphsWithoutParsingOtherMarkdown() {
+        XCTAssertEqual(
+            RenderedNoteContent.displayString(
+                from: "Plain\n- Bullet\n# heading\n* star\n- "
+            ),
+            "Plain\n• Bullet\n# heading\n* star\n• "
+        )
+    }
 }

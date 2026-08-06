@@ -159,6 +159,28 @@ final class IslandNotesFeatureTests: XCTestCase {
         XCTAssertEqual(recreatedFeature.currentNote?.body, body)
     }
 
+    func testDoneCommitSurvivesReopeningThePersistentStore() async throws {
+        let storeCopy = try LegacyStoreFixture.copy()
+        let body = "Restart keeps source\n- and exact bullets"
+        var firstHarness: FeatureHarness? = try storeCopy.makeHarness()
+        try await firstHarness?.feature.bootstrap()
+        let originalID = try XCTUnwrap(firstHarness?.feature.currentNote?.id)
+        let originalVersion = try XCTUnwrap(firstHarness?.feature.currentNote?.contentVersion)
+
+        try firstHarness?.commitCurrentNote(body)
+        XCTAssertEqual(firstHarness?.feature.currentNote?.contentVersion, originalVersion + 1)
+        firstHarness = nil
+
+        let reopened = try storeCopy.makeHarness()
+        try await reopened.feature.bootstrap()
+
+        XCTAssertEqual(reopened.feature.currentNote?.id, originalID)
+        XCTAssertEqual(reopened.feature.currentNote?.body, body)
+        XCTAssertEqual(reopened.feature.currentNote?.contentVersion, originalVersion + 1)
+        XCTAssertFalse(reopened.feature.isEditing)
+        XCTAssertNil(reopened.feature.editingDraft)
+    }
+
     func testBootstrapIsIdempotent() async throws {
         let harness = try FeatureHarness.make()
 

@@ -26,10 +26,7 @@ final class DeepLinkUITests: XCTestCase {
         ]
         app.launch()
 
-        XCTAssertTrue(app.buttons["rendered-note"].waitForExistence(timeout: 5))
-        app.buttons["rendered-note"].tap()
-        let editor = app.textViews["current-note-editor"]
-        XCTAssertTrue(editor.waitForExistence(timeout: 2))
+        let editor = beginWorkbenchEditing(in: app)
         editor.typeText("最大字号也能操作")
         app.buttons["done-editing"].tap()
 
@@ -45,10 +42,8 @@ final class DeepLinkUITests: XCTestCase {
         app.launchArguments = ["--uitesting-reset"]
         app.launch()
 
-        XCTAssertTrue(app.buttons["rendered-note"].waitForExistence(timeout: 5))
-        app.buttons["rendered-note"].tap()
-        XCTAssertTrue(app.textViews["current-note-editor"].waitForExistence(timeout: 2))
-        XCTAssertEqual(app.textViews["current-note-editor"].label, "Current note")
+        let editor = beginWorkbenchEditing(in: app)
+        XCTAssertEqual(editor.label, "Current note")
         XCTAssertEqual(app.buttons["open-more-menu"].label, "More")
         XCTAssertEqual(app.buttons["character-progress"].label, "Character count")
         XCTAssertGreaterThanOrEqual(app.buttons["character-progress"].frame.width, 44)
@@ -60,10 +55,7 @@ final class DeepLinkUITests: XCTestCase {
         app.launchArguments = ["--uitesting-reset"]
         app.launch()
 
-        XCTAssertTrue(app.buttons["rendered-note"].waitForExistence(timeout: 5))
-        app.buttons["rendered-note"].tap()
-        let editor = app.textViews["current-note-editor"]
-        XCTAssertTrue(editor.waitForExistence(timeout: 2))
+        let editor = beginWorkbenchEditing(in: app)
         editor.typeText("Simulator live activity")
         app.buttons["done-editing"].tap()
 

@@ -216,8 +216,8 @@ private struct RenderedNoteView: View {
         } else {
             VStack(alignment: .leading, spacing: IslandDesign.Spacing.x2) {
                 ForEach(Array(RenderedNoteContent.lines(from: source).enumerated()), id: \.offset) {
-                    offset,
-                    line in
+                    item in
+                    let line = item.element
                     switch line {
                     case let .text(text):
                         Text(text.isEmpty ? " " : text)
@@ -226,13 +226,15 @@ private struct RenderedNoteView: View {
                         HStack(alignment: .firstTextBaseline, spacing: IslandDesign.Spacing.x2) {
                             Circle()
                                 .fill(IslandDesign.Colors.primaryText)
-                                .frame(width: 5, height: 5)
+                                .frame(
+                                    width: IslandDesign.Sizing.listBullet,
+                                    height: IslandDesign.Sizing.listBullet
+                                )
                                 .accessibilityHidden(true)
                             Text(text.isEmpty ? " " : text)
                         }
                         .accessibilityElement(children: .combine)
                         .accessibilityLabel(text.isEmpty ? "Empty bullet" : "Bullet, \(text)")
-                        .accessibilityIdentifier("rendered-bullet-\(offset)")
                     }
                 }
             }

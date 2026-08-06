@@ -18,4 +18,17 @@ enum RenderedNoteContent {
                 return .bullet(String(line.dropFirst(2)))
             }
     }
+
+    static func displayString(from source: String) -> String {
+        lines(from: source)
+            .map { line in
+                switch line {
+                case let .text(text):
+                    text
+                case let .bullet(text):
+                    "• \(text)"
+                }
+            }
+            .joined(separator: "\n")
+    }
 }

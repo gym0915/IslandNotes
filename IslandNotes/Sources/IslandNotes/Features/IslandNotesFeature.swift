@@ -31,7 +31,6 @@ final class IslandNotesFeature {
     var library: [NoteSnapshot] { workspace.library }
     private(set) var pinState: PinState = .unpinned
     private(set) var editingDraft: String?
-    private(set) var didReachCharacterLimit = false
     private(set) var isCharacterCountVisible = false
     private(set) var deleteConfirmation: DeleteConfirmation?
     private(set) var feedbackMessage: String?
@@ -39,6 +38,9 @@ final class IslandNotesFeature {
 
     var isEditing: Bool { editingDraft != nil }
     var editingText: String { editingDraft ?? currentNote?.body ?? "" }
+    var didReachCharacterLimit: Bool {
+        characterProgress.used == TextLimiter.maximumCharacterCount
+    }
 
     var characterProgress: CharacterProgress {
         let source = editingDraft ?? currentNote?.body ?? ""
@@ -86,7 +88,6 @@ final class IslandNotesFeature {
         guard editingDraft == nil else { return }
         let source = currentNote?.body ?? ""
         editingDraft = source
-        didReachCharacterLimit = source.count >= TextLimiter.maximumCharacterCount
         feedbackMessage = nil
     }
 
@@ -101,7 +102,6 @@ final class IslandNotesFeature {
         )
         guard editingDraft != nil else { return limitResult }
         editingDraft = limitResult.acceptedText
-        didReachCharacterLimit = limitResult.isAtLimit
         return limitResult
     }
 
@@ -112,7 +112,6 @@ final class IslandNotesFeature {
             markedTextActive: false
         )
         self.editingDraft = finalized.acceptedText
-        didReachCharacterLimit = finalized.isAtLimit
         do {
             guard try workspace.commitCurrentNote(finalized.acceptedText) else { return }
             feedbackMessage = nil
@@ -320,7 +319,6 @@ final class IslandNotesFeature {
         currentNoteID: UUID,
         pinState: PinState = .unpinned,
         editingDraft: String? = nil,
-        didReachCharacterLimit: Bool = false,
         isCharacterCountVisible: Bool = false,
         deleteConfirmation: DeleteConfirmation? = nil,
         feedbackMessage: String? = nil
@@ -334,7 +332,6 @@ final class IslandNotesFeature {
         )
         feature.editingDraft = editingDraft
         feature.pinState = pinState
-        feature.didReachCharacterLimit = didReachCharacterLimit
         feature.isCharacterCountVisible = isCharacterCountVisible
         feature.deleteConfirmation = deleteConfirmation
         feature.feedbackMessage = feedbackMessage
@@ -344,7 +341,6 @@ final class IslandNotesFeature {
 
     private func resetEditingStateAfterCurrentNoteChange() {
         pinState = .unpinned
-        didReachCharacterLimit = false
         characterDetailCancellation?.cancel()
         characterDetailCancellation = nil
         isCharacterCountVisible = false

@@ -10,10 +10,24 @@ struct AppRootView: View {
     init(
         modelContext: ModelContext,
         liveActivityController: LiveActivityControlling,
-        initialDeepLink: URL? = nil
+        initialDeepLink: URL? = nil,
+        simulatesSaveFailure: Bool = false
     ) {
         self.initialDeepLink = initialDeepLink
-        let workspace = NoteWorkspace(modelContext: modelContext)
+        let workspace: NoteWorkspace
+        if simulatesSaveFailure {
+            workspace = NoteWorkspace(
+                modelContext: modelContext,
+                saveChanges: { _ in
+                    throw NSError(
+                        domain: NSCocoaErrorDomain,
+                        code: NSFileWriteNoPermissionError
+                    )
+                }
+            )
+        } else {
+            workspace = NoteWorkspace(modelContext: modelContext)
+        }
         _feature = State(
             initialValue: IslandNotesFeature(
                 workspace: workspace,

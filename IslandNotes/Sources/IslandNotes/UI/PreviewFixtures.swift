@@ -37,7 +37,7 @@ private enum PreviewFixtures {
         pinState: PinState = .unpinned,
         editingDraft: String? = nil,
         libraryBodies: [String] = [],
-        reachedLimit: Bool = false,
+        showsCharacterDetails: Bool = false,
         feedback: String? = nil,
         deleting: Bool = false,
         reduceMotion: Bool? = nil
@@ -47,7 +47,7 @@ private enum PreviewFixtures {
             pinState: pinState,
             editingDraft: editingDraft,
             libraryBodies: libraryBodies,
-            reachedLimit: reachedLimit,
+            showsCharacterDetails: showsCharacterDetails,
             feedback: feedback,
             deleting: deleting
         )
@@ -95,7 +95,7 @@ private enum PreviewFixtures {
         pinState: PinState = .unpinned,
         editingDraft: String? = nil,
         libraryBodies: [String] = [],
-        reachedLimit: Bool = false,
+        showsCharacterDetails: Bool = false,
         feedback: String? = nil,
         deleting: Bool = false
     ) -> (feature: IslandNotesFeature, container: ModelContainer) {
@@ -133,8 +133,7 @@ private enum PreviewFixtures {
             currentNoteID: current.id,
             pinState: pinState,
             editingDraft: editingDraft,
-            didReachCharacterLimit: reachedLimit,
-            isCharacterCountVisible: reachedLimit,
+            isCharacterCountVisible: showsCharacterDetails,
             deleteConfirmation: deleting ? .pending(message: "This cannot be undone.") : nil,
             feedbackMessage: feedback
         )
@@ -241,7 +240,7 @@ private enum PreviewFixtures {
 #Preview("Workbench · Character Limit") {
     PreviewFixtures.workbench(
         body: String(repeating: "界", count: 240),
-        reachedLimit: true
+        showsCharacterDetails: true
     )
 }
 
@@ -249,7 +248,7 @@ private enum PreviewFixtures {
     PreviewFixtures.workbench(
         body: "Saved value remains unchanged",
         editingDraft: String(repeating: "界", count: 240),
-        reachedLimit: true
+        showsCharacterDetails: true
     )
 }
 

@@ -8,17 +8,32 @@ struct IslandNotesApp: App {
     private let container: ModelContainer
     private let liveActivityController: ActivityKitLiveActivityController
     private let initialDeepLink: URL?
+    private let simulatesSaveFailure: Bool
 
     init() {
-        let isUITesting = ProcessInfo.processInfo.arguments.contains("--uitesting-reset")
+        let arguments = ProcessInfo.processInfo.arguments
+        let isUITesting = arguments.contains("--uitesting-reset")
+        simulatesSaveFailure = arguments.contains("--uitesting-save-failure")
         let configuration = ModelConfiguration(isStoredInMemoryOnly: isUITesting)
         container = try! ModelContainer(
             for: NoteRecord.self,
             WorkbenchRecord.self,
             configurations: configuration
         )
+        if simulatesSaveFailure {
+            let timestamp = Date(timeIntervalSince1970: 1_000)
+            let note = NoteRecord(
+                body: "Last committed source",
+                contentVersion: 3,
+                createdAt: timestamp,
+                modifiedAt: timestamp
+            )
+            container.mainContext.insert(note)
+            container.mainContext.insert(WorkbenchRecord(currentNoteID: note.id))
+            try! container.mainContext.save()
+        }
         liveActivityController = ActivityKitLiveActivityController()
-        initialDeepLink = Self.uiTestingDeepLink(from: ProcessInfo.processInfo.arguments)
+        initialDeepLink = Self.uiTestingDeepLink(from: arguments)
     }
 
     var body: some Scene {
@@ -26,7 +41,8 @@ struct IslandNotesApp: App {
             AppRootView(
                 modelContext: container.mainContext,
                 liveActivityController: liveActivityController,
-                initialDeepLink: initialDeepLink
+                initialDeepLink: initialDeepLink,
+                simulatesSaveFailure: simulatesSaveFailure
             )
         }
         .modelContainer(container)

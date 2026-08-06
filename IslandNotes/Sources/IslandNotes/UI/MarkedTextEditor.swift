@@ -29,6 +29,9 @@ struct MarkedTextEditor: UIViewRepresentable {
 
     func updateUIView(_ textView: UITextView, context: Context) {
         context.coordinator.parent = self
+        if textView.markedTextRange == nil {
+            context.coordinator.committedText = text
+        }
         guard textView.markedTextRange == nil, textView.text != text else { return }
         textView.text = text
     }
@@ -36,22 +39,39 @@ struct MarkedTextEditor: UIViewRepresentable {
     @MainActor
     final class Coordinator: NSObject, UITextViewDelegate {
         var parent: MarkedTextEditor
+        var committedText: String
+        private var compositionBaseline: String?
 
         init(parent: MarkedTextEditor) {
             self.parent = parent
+            committedText = parent.text
         }
 
         func textViewDidChange(_ textView: UITextView) {
             let markedTextActive = textView.markedTextRange != nil
-            let acceptedText = parent.onChange(textView.text, markedTextActive)
-            guard !markedTextActive, acceptedText != textView.text else { return }
+            if markedTextActive {
+                if compositionBaseline == nil {
+                    compositionBaseline = committedText
+                }
+                _ = parent.onChange(textView.text, true)
+                return
+            }
 
-            let insertionOffset = min(
-                textView.selectedRange.location,
-                acceptedText.utf16.count
+            let baseline = compositionBaseline ?? committedText
+            compositionBaseline = nil
+            let limitResult = TextLimiter.limitChange(
+                currentText: baseline,
+                proposedText: textView.text
             )
+            let acceptedText = parent.onChange(limitResult.acceptedText, false)
+            committedText = acceptedText
+            guard acceptedText != textView.text else { return }
+
             textView.text = acceptedText
-            textView.selectedRange = NSRange(location: insertionOffset, length: 0)
+            textView.selectedRange = NSRange(
+                location: min(limitResult.selectionUTF16Offset, acceptedText.utf16.count),
+                length: 0
+            )
         }
     }
 }

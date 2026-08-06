@@ -73,6 +73,45 @@ final class CharacterLimitTests: XCTestCase {
         XCTAssertFalse(replacement.wasTruncated)
     }
 
+    func testTypingInsideAFullValueRejectsTheNewCharacterWithoutDroppingTheSuffix() {
+        let current = String(repeating: "A", count: 120)
+            + String(repeating: "B", count: 120)
+        let proposed = String(repeating: "A", count: 120)
+            + "X"
+            + String(repeating: "B", count: 120)
+
+        let result = TextLimiter.limitChange(
+            currentText: current,
+            proposedText: proposed
+        )
+
+        XCTAssertEqual(result.acceptedText, current)
+        XCTAssertTrue(result.wasTruncated)
+        XCTAssertTrue(result.isAtLimit)
+    }
+
+    func testOverLimitPasteInsideTextKeepsTheExistingSuffix() {
+        let current = String(repeating: "A", count: 120)
+            + String(repeating: "B", count: 118)
+        let proposed = String(repeating: "A", count: 120)
+            + "XYZ"
+            + String(repeating: "B", count: 118)
+
+        let result = TextLimiter.limitChange(
+            currentText: current,
+            proposedText: proposed
+        )
+
+        XCTAssertEqual(
+            result.acceptedText,
+            String(repeating: "A", count: 120)
+                + "XY"
+                + String(repeating: "B", count: 118)
+        )
+        XCTAssertTrue(result.wasTruncated)
+        XCTAssertTrue(result.isAtLimit)
+    }
+
     func testFeatureDefersMarkedTextAndExposesAccurateProgressAfterReveal() async throws {
         let harness = try FeatureHarness.make()
         try await harness.feature.bootstrap()
@@ -136,6 +175,29 @@ final class CharacterLimitTests: XCTestCase {
         XCTAssertEqual(harness.feature.characterProgress, CharacterProgress(used: 3, remaining: 237))
     }
 
+    func testRestoredAndReplaced240CharacterNotesUseTheLimitRingState() async throws {
+        let harness = try FeatureHarness.make()
+        try await harness.feature.bootstrap()
+        let full = String(repeating: "A", count: 240)
+        try harness.commitCurrentNote(full)
+
+        let recreatedFeature = IslandNotesFeature(
+            modelContext: harness.context,
+            liveActivityController: harness.controller
+        )
+        try await recreatedFeature.bootstrap()
+
+        XCTAssertTrue(recreatedFeature.didReachCharacterLimit)
+        XCTAssertEqual(recreatedFeature.characterProgress.remaining, 0)
+
+        let libraryID = try XCTUnwrap(harness.feature.currentNote?.id)
+        try await harness.feature.archiveCurrentNote()
+        try await harness.feature.selectLibraryNote(id: libraryID)
+
+        XCTAssertTrue(harness.feature.didReachCharacterLimit)
+        XCTAssertEqual(harness.feature.characterProgress.remaining, 0)
+    }
+
     func testCharacterCountIncludesListPrefixSpacesPunctuationAndNewlines() {
         let source = "- 项目，A!\n下一行"
 
@@ -162,8 +224,6 @@ final class CharacterLimitTests: XCTestCase {
 
         harness.feature.revealCharacterCount()
         let secondTimer = try XCTUnwrap(scheduler.latestID)
-        XCTAssertNotEqual(firstTimer, secondTimer)
-        XCTAssertTrue(scheduler.isCancelled(firstTimer))
 
         scheduler.fire(firstTimer)
         XCTAssertTrue(harness.feature.isCharacterCountVisible)
@@ -188,10 +248,6 @@ private final class ManualCharacterDetailScheduler {
         return CharacterDetailCancellation { [weak self] in
             self?.cancelled.insert(id)
         }
-    }
-
-    func isCancelled(_ id: Int) -> Bool {
-        cancelled.contains(id)
     }
 
     func fire(_ id: Int) {

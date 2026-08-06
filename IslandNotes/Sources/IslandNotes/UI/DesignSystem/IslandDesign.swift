@@ -113,6 +113,7 @@ enum IslandDesign {
         static let menuTopOffset: CGFloat = 64
         static let statusDot: CGFloat = 7
         static let characterRing: CGFloat = 34
+        static let listBullet: CGFloat = 5
         static let editorMinimumHeight: CGFloat = 310
         static let actionHeight: CGFloat = 48
         static let hairline: CGFloat = 1

@@ -34,12 +34,7 @@ final class IslandNotesUITests: XCTestCase {
         let app = launchCleanApp()
         let renderedNote = app.buttons["rendered-note"]
 
-        XCTAssertTrue(renderedNote.waitForExistence(timeout: 5))
-        XCTAssertFalse(app.textViews["current-note-editor"].exists)
-        renderedNote.tap()
-
-        let editor = app.textViews["current-note-editor"]
-        XCTAssertTrue(editor.waitForExistence(timeout: 2))
+        let editor = beginWorkbenchEditing(in: app)
         XCTAssertEqual(editor.value as? String, "")
         editor.typeText("Plain line\n- Bullet line\n# literal heading\n* literal star")
         app.buttons["done-editing"].tap()
@@ -47,8 +42,10 @@ final class IslandNotesUITests: XCTestCase {
         XCTAssertTrue(renderedNote.waitForExistence(timeout: 3))
         XCTAssertFalse(editor.exists)
         XCTAssertTrue(app.staticTexts["Plain line"].exists)
-        XCTAssertTrue(app.descendants(matching: .any)["rendered-bullet-1"].exists)
-        XCTAssertTrue(app.staticTexts["Bullet line"].exists)
+        let bullet = app.descendants(matching: .any)
+            .matching(NSPredicate(format: "label == %@", "Bullet, Bullet line"))
+            .firstMatch
+        XCTAssertTrue(bullet.exists)
         XCTAssertTrue(app.staticTexts["# literal heading"].exists)
         XCTAssertTrue(app.staticTexts["* literal star"].exists)
     }
@@ -96,11 +93,7 @@ final class IslandNotesUITests: XCTestCase {
 
     func testEditingEnablesActionsAndDeleteShowsIrreversibleConfirmation() {
         let app = launchCleanApp()
-        let renderedNote = app.buttons["rendered-note"]
-        XCTAssertTrue(renderedNote.waitForExistence(timeout: 5))
-        renderedNote.tap()
-        let editor = app.textViews["current-note-editor"]
-        XCTAssertTrue(editor.waitForExistence(timeout: 2))
+        let editor = beginWorkbenchEditing(in: app)
 
         editor.typeText("A note to keep")
 
@@ -134,11 +127,7 @@ final class IslandNotesUITests: XCTestCase {
 
     func testArchivingAndSelectingLibraryNoteReturnsItToWorkbench() {
         let app = launchCleanApp()
-        let renderedNote = app.buttons["rendered-note"]
-        XCTAssertTrue(renderedNote.waitForExistence(timeout: 5))
-        renderedNote.tap()
-        let editor = app.textViews["current-note-editor"]
-        XCTAssertTrue(editor.waitForExistence(timeout: 2))
+        let editor = beginWorkbenchEditing(in: app)
         editor.typeText("Old note from library")
         app.buttons["done-editing"].tap()
 
@@ -165,10 +154,7 @@ final class IslandNotesUITests: XCTestCase {
 
     func testDraftSurvivesOpeningAndClosingNoteLibrary() {
         let app = launchCleanApp()
-        XCTAssertTrue(app.buttons["rendered-note"].waitForExistence(timeout: 5))
-        app.buttons["rendered-note"].tap()
-        let editor = app.textViews["current-note-editor"]
-        XCTAssertTrue(editor.waitForExistence(timeout: 2))
+        let editor = beginWorkbenchEditing(in: app)
         editor.typeText("Draft across a sheet")
 
         app.buttons["open-more-menu"].tap()
@@ -183,10 +169,7 @@ final class IslandNotesUITests: XCTestCase {
 
     func testDraftSurvivesOrdinaryBackgroundAndResume() {
         let app = launchCleanApp()
-        XCTAssertTrue(app.buttons["rendered-note"].waitForExistence(timeout: 5))
-        app.buttons["rendered-note"].tap()
-        let editor = app.textViews["current-note-editor"]
-        XCTAssertTrue(editor.waitForExistence(timeout: 2))
+        let editor = beginWorkbenchEditing(in: app)
         editor.typeText("Draft after background")
 
         XCUIDevice.shared.press(.home)
@@ -198,10 +181,7 @@ final class IslandNotesUITests: XCTestCase {
 
     func testEditingStopsAt240CharactersAndRingShowsDraftCount() {
         let app = launchCleanApp()
-        XCTAssertTrue(app.buttons["rendered-note"].waitForExistence(timeout: 5))
-        app.buttons["rendered-note"].tap()
-        let editor = app.textViews["current-note-editor"]
-        XCTAssertTrue(editor.waitForExistence(timeout: 2))
+        let editor = beginWorkbenchEditing(in: app)
 
         editor.typeText(String(repeating: "A", count: 241))
 
@@ -215,5 +195,23 @@ final class IslandNotesUITests: XCTestCase {
             app.buttons["character-progress"].value as? String,
             "240 used, 0 remaining"
         )
+    }
+
+    func testFailedDoneKeepsEditorDraftAndShowsSaveFeedback() {
+        let app = XCUIApplication()
+        app.launchArguments = ["--uitesting-reset", "--uitesting-save-failure"]
+        app.launch()
+        let renderedNote = app.buttons["rendered-note"]
+        XCTAssertTrue(renderedNote.waitForExistence(timeout: 5))
+        XCTAssertTrue(renderedNote.label.contains("Last committed source"))
+        let editor = beginWorkbenchEditing(in: app)
+
+        editor.typeText(" + unsaved")
+        app.buttons["done-editing"].tap()
+
+        XCTAssertTrue(editor.waitForExistence(timeout: 3))
+        XCTAssertEqual(editor.value as? String, "Last committed source + unsaved")
+        XCTAssertFalse(renderedNote.exists)
+        XCTAssertTrue(app.staticTexts["Your note hasn't been saved."].exists)
     }
 }

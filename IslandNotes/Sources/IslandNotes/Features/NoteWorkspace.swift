@@ -45,16 +45,19 @@ private struct WorkbenchCheckpoint {
 final class NoteWorkspace {
     private let modelContext: ModelContext
     private let now: () -> Date
+    private let saveChanges: (ModelContext) throws -> Void
 
     private(set) var currentNote: NoteSnapshot?
     private(set) var library: [NoteSnapshot] = []
 
     init(
         modelContext: ModelContext,
-        now: @escaping () -> Date = Date.init
+        now: @escaping () -> Date = Date.init,
+        saveChanges: ((ModelContext) throws -> Void)? = nil
     ) {
         self.modelContext = modelContext
         self.now = now
+        self.saveChanges = saveChanges ?? { try $0.save() }
     }
 
     func bootstrap() throws {
@@ -212,7 +215,7 @@ final class NoteWorkspace {
 
     private func saveOrRollback(to checkpoint: WorkspaceCheckpoint) throws {
         do {
-            try modelContext.save()
+            try saveChanges(modelContext)
         } catch let saveError {
             modelContext.rollback()
             try restore(checkpoint)

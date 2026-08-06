@@ -34,7 +34,8 @@ private enum PreviewFixtures {
             WorkbenchView(
                 feature: fixture.feature,
                 reduceMotionOverride: reduceMotion,
-                openLibrary: {}
+                openNoteLibrary: {},
+                openSettings: {}
             )
         }
         .modelContainer(fixture.container)
@@ -42,10 +43,25 @@ private enum PreviewFixtures {
 
     static func library(libraryBodies: [String]) -> some View {
         let fixture = makeFeature(body: "", libraryBodies: libraryBodies)
-        return NavigationStack {
+        return AppSheetContainer(title: "Note Library", close: {}) {
             NoteLibraryView(feature: fixture.feature)
         }
         .modelContainer(fixture.container)
+    }
+
+    static func settings() -> some View {
+        AppSheetContainer(title: "Settings", close: {}) {
+            SettingsView()
+        }
+    }
+
+    static func moreMenu() -> some View {
+        ZStack(alignment: .topTrailing) {
+            IslandDesign.Colors.canvas
+                .ignoresSafeArea()
+            MoreMenu(openNoteLibrary: {}, openSettings: {})
+                .padding(IslandDesign.Spacing.x6)
+        }
     }
 
     private static func makeFeature(
@@ -91,84 +107,116 @@ private enum PreviewFixtures {
             pinState: pinState,
             didReachCharacterLimit: reachedLimit,
             isCharacterCountVisible: reachedLimit,
-            deleteConfirmation: deleting ? .pending(message: "删除后无法恢复") : nil,
+            deleteConfirmation: deleting ? .pending(message: "This cannot be undone.") : nil,
             feedbackMessage: feedback
         )
         return (feature, container)
     }
 }
 
-#Preview("工作台 · 首次空白") {
+#Preview("Workbench · Empty") {
     PreviewFixtures.workbench()
 }
 
-#Preview("工作台 · 有效短文") {
-    PreviewFixtures.workbench(body: "登机前记得给家里打电话。")
+#Preview("App Shell · Light") {
+    PreviewFixtures.workbench(body: "A clear place for what matters now.")
+        .preferredColorScheme(.light)
 }
 
-#Preview("工作台 · 中英换行与 Emoji") {
+#Preview("App Shell · Dark") {
+    PreviewFixtures.workbench(body: "A clear place for what matters now.")
+        .preferredColorScheme(.dark)
+}
+
+#Preview("More Menu · Light") {
+    PreviewFixtures.moreMenu()
+        .preferredColorScheme(.light)
+}
+
+#Preview("More Menu · Dark") {
+    PreviewFixtures.moreMenu()
+        .preferredColorScheme(.dark)
+}
+
+#Preview("Note Library Sheet · Light") {
+    PreviewFixtures.library(
+        libraryBodies: ["Call home before boarding", "Review the launch notes"]
+    )
+    .preferredColorScheme(.light)
+}
+
+#Preview("Settings Sheet · Dark") {
+    PreviewFixtures.settings()
+        .preferredColorScheme(.dark)
+}
+
+#Preview("Workbench · Short Note") {
+    PreviewFixtures.workbench(body: "Call home before boarding.")
+}
+
+#Preview("Workbench · Multilingual and Emoji") {
     PreviewFixtures.workbench(body: "Ship the tiny thing.\n然后去散步 🌿👨‍👩‍👧‍👦")
 }
 
-#Preview("工作台 · 239 字") {
+#Preview("Workbench · 239 Characters") {
     PreviewFixtures.workbench(body: String(repeating: "字", count: 239))
 }
 
-#Preview("工作台 · 240 字") {
+#Preview("Workbench · 240 Characters") {
     PreviewFixtures.workbench(body: String(repeating: "A", count: 240))
 }
 
-#Preview("工作台 · 超限反馈") {
+#Preview("Workbench · Character Limit") {
     PreviewFixtures.workbench(
         body: String(repeating: "界", count: 240),
         reachedLimit: true
     )
 }
 
-#Preview("工作台 · 挂起中") {
-    PreviewFixtures.workbench(body: "这是岛上正在展示的便签。", pinState: .pinned)
+#Preview("Workbench · Live") {
+    PreviewFixtures.workbench(body: "This note is currently Live.", pinState: .pinned)
 }
 
-#Preview("工作台 · 更新未同步") {
+#Preview("Workbench · Update Not Synchronized") {
     PreviewFixtures.workbench(
-        body: "本机内容已经保存。",
+        body: "This note is saved on this device.",
         pinState: .pinned,
-        feedback: "系统展示可能尚未同步"
+        feedback: "Live may not be up to date."
     )
 }
 
-#Preview("工作台 · 删除确认") {
-    PreviewFixtures.workbench(body: "即将删除的便签", deleting: true)
+#Preview("Workbench · Delete Confirmation") {
+    PreviewFixtures.workbench(body: "A note ready to delete", deleting: true)
 }
 
-#Preview("工作台 · 深色") {
-    PreviewFixtures.workbench(body: "跟随系统深色外观。")
+#Preview("Workbench · Dark") {
+    PreviewFixtures.workbench(body: "The shell follows the dark appearance.")
         .preferredColorScheme(.dark)
 }
 
-#Preview("工作台 · 最大动态字体") {
-    PreviewFixtures.workbench(body: "最大字号仍然可以滚动到所有动作。")
+#Preview("Workbench · Maximum Dynamic Type") {
+    PreviewFixtures.workbench(body: "All actions remain reachable at the largest text size.")
         .environment(\.dynamicTypeSize, .accessibility5)
 }
 
-#Preview("工作台 · 减少动态效果") {
+#Preview("Workbench · Reduce Motion") {
     PreviewFixtures.workbench(
-        body: "状态不依赖动画表达。",
+        body: "State is never communicated through motion alone.",
         pinState: .pinned,
         reduceMotion: true
     )
 }
 
-#Preview("便签库 · 空") {
+#Preview("Note Library · Empty") {
     PreviewFixtures.library(libraryBodies: [])
 }
 
-#Preview("便签库 · 多条倒序") {
+#Preview("Note Library · Populated") {
     PreviewFixtures.library(
         libraryBodies: [
-            "最近放入的便签\n保留换行与原文语义",
+            "Most recently moved note\nLine breaks remain intact",
             "Second note with an emoji 🧭",
-            "更早的一条便签",
+            "An earlier note",
         ]
     )
 }

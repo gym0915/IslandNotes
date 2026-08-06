@@ -7,11 +7,17 @@ struct NoteLibraryView: View {
     var body: some View {
         Group {
             if feature.library.isEmpty {
-                ContentUnavailableView(
-                    "便签库还是空的",
-                    systemImage: "tray",
-                    description: Text("把当前便签放入库后，会在这里按最近时间排列。")
-                )
+                VStack(spacing: IslandDesign.Spacing.x4) {
+                    AppIconView(icon: .noteLibrary, size: 28)
+                        .foregroundStyle(IslandDesign.Colors.secondaryText)
+                    Text("No notes yet")
+                        .font(IslandDesign.Typography.sheetTitle)
+                    Text("Move your current note here to keep it for later.")
+                        .font(IslandDesign.Typography.body)
+                        .foregroundStyle(IslandDesign.Colors.secondaryText)
+                        .multilineTextAlignment(.center)
+                }
+                .padding(IslandDesign.Spacing.x8)
                 .accessibilityIdentifier("empty-library")
             } else {
                 List(feature.library) { note in
@@ -38,13 +44,11 @@ struct NoteLibraryView: View {
                     }
                     .buttonStyle(.plain)
                     .accessibilityIdentifier("library-note-\(note.id.uuidString)")
-                    .accessibilityLabel("便签：\(note.body)")
-                    .accessibilityHint("轻点与当前便签交换")
+                    .accessibilityLabel("Note: \(note.body)")
+                    .accessibilityHint("Replaces the current note")
                 }
                 .listStyle(.insetGrouped)
             }
         }
-        .navigationTitle("便签库")
-        .navigationBarTitleDisplayMode(.large)
     }
 }

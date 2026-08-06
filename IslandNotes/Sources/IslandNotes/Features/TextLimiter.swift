@@ -35,6 +35,6 @@ struct CharacterProgress: Equatable, Sendable {
     let remaining: Int
 
     var accessibilityValue: String {
-        "已用 \(used) 个字符，剩余 \(remaining) 个字符"
+        "\(used) used, \(remaining) remaining"
     }
 }

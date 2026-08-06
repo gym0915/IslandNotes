@@ -13,8 +13,8 @@ struct ActionDock: View {
     @ViewBuilder
     private var actionButtons: some View {
         ActionButton(
-            title: "放入便签库",
-            systemImage: "tray.and.arrow.down",
+            title: "Move to Note Library",
+            icon: .moveToLibrary,
             identifier: "archive-current-note",
             role: nil,
             isEnabled: feature.canArchive
@@ -23,8 +23,8 @@ struct ActionDock: View {
         }
 
         ActionButton(
-            title: feature.pinState == .pinned ? "取消挂起" : "挂起",
-            systemImage: feature.pinState == .pinned ? "pin.slash" : "pin",
+            title: feature.pinState == .pinned ? "Live" : "Go Live",
+            icon: .live,
             identifier: "toggle-pin",
             role: nil,
             isEnabled: feature.pinState == .pinned || feature.canPin,
@@ -40,8 +40,8 @@ struct ActionDock: View {
         }
 
         ActionButton(
-            title: "删除",
-            systemImage: "trash",
+            title: "Delete Note",
+            icon: .delete,
             identifier: "delete-current-note",
             role: .destructive,
             isEnabled: feature.canDelete
@@ -53,7 +53,7 @@ struct ActionDock: View {
 
 private struct ActionButton: View {
     let title: String
-    let systemImage: String
+    let icon: AppIcon
     let identifier: String
     let role: ButtonRole?
     let isEnabled: Bool
@@ -62,14 +62,17 @@ private struct ActionButton: View {
 
     var body: some View {
         Button(role: role, action: action) {
-            Label(title, systemImage: systemImage)
-                .font(.subheadline.weight(.semibold))
+            HStack(spacing: IslandDesign.Spacing.x2) {
+                AppIconView(icon: icon, size: 18)
+                Text(title)
+            }
+                .font(IslandDesign.Typography.action)
                 .frame(maxWidth: .infinity, minHeight: 48)
         }
         .buttonStyle(.bordered)
-        .tint(isProminent ? Color(red: 0.48, green: 0.66, blue: 0.50) : nil)
+        .tint(isProminent ? IslandDesign.Colors.live : nil)
         .disabled(!isEnabled)
         .accessibilityIdentifier(identifier)
-        .accessibilityHint(isEnabled ? "" : "当前便签需要包含非空白内容")
+        .accessibilityHint(isEnabled ? "" : "The current note needs non-whitespace text")
     }
 }

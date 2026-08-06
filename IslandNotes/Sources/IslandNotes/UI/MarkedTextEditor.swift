@@ -19,8 +19,8 @@ struct MarkedTextEditor: UIViewRepresentable {
         textView.textContainer.lineFragmentPadding = 0
         textView.keyboardDismissMode = .interactive
         textView.accessibilityIdentifier = "current-note-editor"
-        textView.accessibilityLabel = "当前便签"
-        textView.accessibilityHint = "直接编辑，内容会自动保存"
+        textView.accessibilityLabel = "Current note"
+        textView.accessibilityHint = "Edit the current note"
         return textView
     }
 

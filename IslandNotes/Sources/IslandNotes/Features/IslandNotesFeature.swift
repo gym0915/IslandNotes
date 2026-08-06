@@ -105,7 +105,7 @@ final class IslandNotesFeature {
             guard try workspace.commitCurrentNote(stagedText) else { return }
             feedbackMessage = nil
         } catch {
-            feedbackMessage = "内容尚未保存"
+            feedbackMessage = "Your note hasn't been saved."
             throw error
         }
         if pinState == .pinned, let currentNote {
@@ -134,7 +134,7 @@ final class IslandNotesFeature {
         do {
             guard try workspace.moveCurrentNoteToLibrary() else { return }
         } catch {
-            feedbackMessage = "放入便签库未完成"
+            feedbackMessage = "Couldn't move the note to your library."
             throw error
         }
 
@@ -149,7 +149,7 @@ final class IslandNotesFeature {
         do {
             guard try workspace.replaceCurrentNote(withLibraryNoteID: id) else { return }
         } catch {
-            feedbackMessage = "交换未完成"
+            feedbackMessage = "Couldn't replace the current note."
             throw error
         }
 
@@ -158,7 +158,7 @@ final class IslandNotesFeature {
 
     func requestDelete() {
         guard canDelete else { return }
-        deleteConfirmation = .pending(message: "删除后无法恢复")
+        deleteConfirmation = .pending(message: "This cannot be undone.")
     }
 
     func cancelDelete() {
@@ -173,7 +173,7 @@ final class IslandNotesFeature {
         do {
             guard try workspace.deleteCurrentNote() else { return }
         } catch {
-            feedbackMessage = "删除未完成"
+            feedbackMessage = "Couldn't delete the note."
             throw error
         }
 
@@ -202,7 +202,7 @@ final class IslandNotesFeature {
             )
         } catch {
             pinState = .unpinned
-            feedbackMessage = "挂起未完成，请重试"
+            feedbackMessage = "Couldn't start Live. Try again."
             return
         }
 
@@ -212,7 +212,7 @@ final class IslandNotesFeature {
             : .unpinned
         hasActivityInconsistency = pinState == .unpinned && !refreshed.isEmpty
         if pinState == .unpinned {
-            feedbackMessage = "挂起未完成，请重试"
+            feedbackMessage = "Couldn't start Live. Try again."
         }
     }
 
@@ -250,7 +250,7 @@ final class IslandNotesFeature {
             self.pendingActivityUpdate = nil
             feedbackMessage = nil
         } catch {
-            feedbackMessage = "系统展示可能尚未同步"
+            feedbackMessage = "Live may not be up to date."
         }
 
         let refreshed = await liveActivityController.activities()
@@ -295,7 +295,7 @@ final class IslandNotesFeature {
 
         pinState = .unpinned
         hasActivityInconsistency = true
-        feedbackMessage = "系统展示正在整理，请重试"
+        feedbackMessage = "Live is being reconciled. Try again."
     }
 
 #if DEBUG
@@ -355,7 +355,7 @@ final class IslandNotesFeature {
 
         pinState = .pinned
         hasActivityInconsistency = false
-        feedbackMessage = "取消挂起尚未完成"
+        feedbackMessage = "Couldn't stop Live."
         return false
     }
 

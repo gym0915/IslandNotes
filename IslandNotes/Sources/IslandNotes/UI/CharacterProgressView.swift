@@ -23,7 +23,7 @@ struct CharacterProgressView: View {
                 .frame(width: 34, height: 34)
 
                 if isExpanded {
-                    Text("\(progress.used) / 240 · 还可输入 \(progress.remaining)")
+                    Text("\(progress.used) used · \(progress.remaining) remaining")
                         .font(.caption.weight(.semibold))
                         .foregroundStyle(.secondary)
                         .transition(.opacity)
@@ -33,8 +33,8 @@ struct CharacterProgressView: View {
         }
         .buttonStyle(.plain)
         .accessibilityIdentifier("character-progress")
-        .accessibilityLabel("字符进度")
+        .accessibilityLabel("Character count")
         .accessibilityValue(progress.accessibilityValue)
-        .accessibilityHint("轻点查看已用和剩余字符")
+        .accessibilityHint("Shows used and remaining characters")
     }
 }

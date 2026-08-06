@@ -1,5 +1,6 @@
 import XCTest
 
+@MainActor
 final class DeepLinkUITests: XCTestCase {
     func testExpiredDeepLinkColdLaunchConvergesOnCurrentWorkbench() {
         let app = XCUIApplication()
@@ -42,9 +43,9 @@ final class DeepLinkUITests: XCTestCase {
         app.launch()
 
         XCTAssertTrue(app.textViews["current-note-editor"].waitForExistence(timeout: 5))
-        XCTAssertEqual(app.textViews["current-note-editor"].label, "当前便签")
-        XCTAssertEqual(app.buttons["open-library"].label, "打开便签库")
-        XCTAssertEqual(app.buttons["character-progress"].label, "字符进度")
+        XCTAssertEqual(app.textViews["current-note-editor"].label, "Current note")
+        XCTAssertEqual(app.buttons["open-more-menu"].label, "More")
+        XCTAssertEqual(app.buttons["character-progress"].label, "Character count")
     }
 
     func testSimulatorActivityKitStartUpdateAndEndChain() {
@@ -66,7 +67,7 @@ final class DeepLinkUITests: XCTestCase {
         toggle.tap()
 
         let pinned = XCTNSPredicateExpectation(
-            predicate: NSPredicate(format: "label == %@", "取消挂起"),
+            predicate: NSPredicate(format: "label == %@", "Live"),
             object: toggle
         )
         XCTAssertEqual(XCTWaiter.wait(for: [pinned], timeout: 5), .completed)
@@ -77,7 +78,7 @@ final class DeepLinkUITests: XCTestCase {
 
         toggle.tap()
         let unpinned = XCTNSPredicateExpectation(
-            predicate: NSPredicate(format: "label == %@", "挂起"),
+            predicate: NSPredicate(format: "label == %@", "Go Live"),
             object: toggle
         )
         XCTAssertEqual(XCTWaiter.wait(for: [unpinned], timeout: 5), .completed)

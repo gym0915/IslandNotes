@@ -4,7 +4,7 @@ import SwiftUI
 struct AppRootView: View {
     @Environment(\.scenePhase) private var scenePhase
     @State private var feature: IslandNotesFeature
-    @State private var showsLibrary = false
+    @State private var router = AppRouter()
     private let initialDeepLink: URL?
 
     init(
@@ -24,12 +24,11 @@ struct AppRootView: View {
 
     var body: some View {
         NavigationStack {
-            WorkbenchView(feature: feature) {
-                showsLibrary = true
-            }
-            .navigationDestination(isPresented: $showsLibrary) {
-                NoteLibraryView(feature: feature)
-            }
+            WorkbenchView(
+                feature: feature,
+                openNoteLibrary: router.presentNoteLibrary,
+                openSettings: router.presentSettings
+            )
         }
         .task {
             try? await feature.bootstrap()
@@ -44,11 +43,39 @@ struct AppRootView: View {
         .onOpenURL { url in
             handleDeepLink(url)
         }
+        .sheet(
+            item: Binding(
+                get: { router.presentedSheet },
+                set: { destination in
+                    if destination == nil { router.dismissSheet() }
+                }
+            ),
+            onDismiss: router.dismissSheet
+        ) { destination in
+            sheet(for: destination)
+                .presentationDetents([.large])
+                .presentationDragIndicator(.visible)
+                .presentationCornerRadius(IslandDesign.Radius.sheet)
+                .presentationBackground(IslandDesign.Colors.canvas)
+        }
+    }
+
+    @ViewBuilder
+    private func sheet(for destination: AppSheet) -> some View {
+        switch destination {
+        case .noteLibrary:
+            AppSheetContainer(title: "Note Library", close: router.dismissSheet) {
+                NoteLibraryView(feature: feature)
+            }
+        case .settings:
+            AppSheetContainer(title: "Settings", close: router.dismissSheet) {
+                SettingsView()
+            }
+        }
     }
 
     private func handleDeepLink(_ url: URL) {
-        guard DeepLinkRouter.destination(for: url) == .workbench else { return }
-        showsLibrary = false
+        guard router.handleDeepLink(url) else { return }
         Task { await feature.reconcileActivities() }
     }
 }

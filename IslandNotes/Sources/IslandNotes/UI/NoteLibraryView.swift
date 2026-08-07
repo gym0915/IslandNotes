@@ -43,9 +43,14 @@ struct NoteLibraryView: View {
                         .padding(.vertical, IslandDesign.Spacing.x2)
                     }
                     .buttonStyle(.plain)
+                    .disabled(!feature.canSelectLibraryNote)
                     .accessibilityIdentifier("library-note-\(note.id.uuidString)")
                     .accessibilityLabel("Note: \(note.body)")
-                    .accessibilityHint("Replaces the current note")
+                    .accessibilityHint(
+                        feature.canSelectLibraryNote
+                            ? "Replaces the current note"
+                            : feature.noteMutationAvailability.accessibilityHint
+                    )
                 }
                 .listStyle(.insetGrouped)
             }

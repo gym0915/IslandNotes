@@ -33,6 +33,10 @@ final class FakeLiveActivityController: LiveActivityControlling {
         activitiesContinuation != nil
     }
 
+    var hasPausedRequest: Bool {
+        !requestContinuations.isEmpty
+    }
+
     func seedActivities(_ activities: [ActivitySession]) {
         activeActivities = activities
     }

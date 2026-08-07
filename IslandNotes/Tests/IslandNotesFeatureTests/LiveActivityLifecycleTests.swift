@@ -3,6 +3,117 @@ import XCTest
 
 @MainActor
 final class LiveActivityLifecycleTests: XCTestCase {
+    func testDoneDuringPendingLiveStartPreservesDraftUntilTransitionCompletes() async throws {
+        let harness = try FeatureHarness.make()
+        try await harness.feature.bootstrap()
+        try harness.commitCurrentNote("Committed before Live")
+        harness.feature.beginEditing()
+        harness.feature.stageEditorText(
+            proposedText: "Draft while Live starts",
+            markedTextActive: false
+        )
+        harness.controller.pauseRequests()
+
+        let start = Task { await harness.feature.startPinning() }
+        await waitUntil { harness.controller.hasPausedRequest }
+        XCTAssertFalse(harness.feature.canPin)
+        XCTAssertFalse(harness.feature.canBeginEditing)
+        XCTAssertFalse(harness.feature.canCompleteEditing)
+        XCTAssertFalse(harness.feature.canSelectLibraryNote)
+        XCTAssertEqual(harness.feature.noteMutationAvailability, .busy)
+
+        try harness.feature.completeEditing()
+
+        XCTAssertEqual(harness.feature.currentNote?.body, "Committed before Live")
+        XCTAssertEqual(harness.feature.editingDraft, "Draft while Live starts")
+        XCTAssertEqual(harness.feature.feedbackMessage, "Another note action is in progress.")
+
+        harness.controller.resumeRequests()
+        await start.value
+
+        XCTAssertEqual(harness.controller.activeActivities.first?.body, "Committed before Live")
+        XCTAssertNil(harness.feature.feedbackMessage)
+        XCTAssertTrue(harness.feature.canCompleteEditing)
+        XCTAssertTrue(harness.feature.canSelectLibraryNote)
+        XCTAssertEqual(harness.feature.noteMutationAvailability, .enabled)
+
+        try harness.feature.completeEditing()
+        await harness.feature.flushPendingActivityUpdate()
+
+        XCTAssertEqual(harness.feature.currentNote?.body, "Draft while Live starts")
+        XCTAssertEqual(harness.controller.activeActivities.first?.body, "Draft while Live starts")
+        XCTAssertNil(harness.feature.editingDraft)
+    }
+
+    func testLibraryReplacementDuringPendingLiveStartIsRejectedWithoutChangingCurrentNote() async throws {
+        let harness = try FeatureHarness.make()
+        try await harness.feature.bootstrap()
+        try harness.commitCurrentNote("Library candidate")
+        let libraryID = try XCTUnwrap(harness.feature.currentNote?.id)
+        try await harness.feature.archiveCurrentNote()
+        try harness.commitCurrentNote("Current before Live")
+        let currentID = try XCTUnwrap(harness.feature.currentNote?.id)
+        harness.controller.pauseRequests()
+
+        let start = Task { await harness.feature.startPinning() }
+        await waitUntil { harness.controller.hasPausedRequest }
+        XCTAssertFalse(harness.feature.canPin)
+        XCTAssertFalse(harness.feature.canBeginEditing)
+        XCTAssertFalse(harness.feature.canSelectLibraryNote)
+
+        try await harness.feature.selectLibraryNote(id: libraryID)
+
+        XCTAssertEqual(harness.feature.currentNote?.id, currentID)
+        XCTAssertEqual(harness.feature.currentNote?.body, "Current before Live")
+        XCTAssertEqual(harness.feature.library.map(\.id), [libraryID])
+        XCTAssertEqual(harness.feature.feedbackMessage, "Another note action is in progress.")
+
+        harness.controller.resumeRequests()
+        await start.value
+
+        XCTAssertEqual(harness.controller.activeActivities.first?.noteID, currentID)
+        XCTAssertEqual(harness.controller.activeActivities.first?.body, "Current before Live")
+        XCTAssertNil(harness.feature.feedbackMessage)
+
+        try await harness.feature.selectLibraryNote(id: libraryID)
+
+        XCTAssertEqual(harness.feature.currentNote?.id, libraryID)
+        XCTAssertEqual(harness.feature.currentNote?.body, "Library candidate")
+        XCTAssertTrue(harness.controller.activeActivities.isEmpty)
+    }
+
+    func testPendingLibraryReplacementBlocksLiveStartUntilCurrentNoteChanges() async throws {
+        let harness = try FeatureHarness.make()
+        try await harness.feature.bootstrap()
+        try harness.commitCurrentNote("Library candidate")
+        let libraryID = try XCTUnwrap(harness.feature.currentNote?.id)
+        try await harness.feature.archiveCurrentNote()
+        try harness.commitCurrentNote("Current before replacement")
+        harness.controller.pauseNextActivities()
+
+        let replacement = Task {
+            try await harness.feature.selectLibraryNote(id: libraryID)
+        }
+        await waitUntil { harness.controller.hasPausedActivitiesCall }
+
+        XCTAssertFalse(harness.feature.canPin)
+
+        let start = Task { await harness.feature.startPinning() }
+        await drainReadyTasks()
+
+        XCTAssertTrue(harness.controller.activeActivities.isEmpty)
+        XCTAssertEqual(harness.feature.pinState, .unpinned)
+        XCTAssertEqual(harness.feature.currentNote?.body, "Current before replacement")
+
+        harness.controller.resumeActivities()
+        try await replacement.value
+        await start.value
+
+        XCTAssertEqual(harness.feature.currentNote?.id, libraryID)
+        XCTAssertEqual(harness.feature.currentNote?.body, "Library candidate")
+        XCTAssertTrue(harness.controller.activeActivities.isEmpty)
+    }
+
     func testRapidLiveStartsIssueOnlyOneSystemRequest() async throws {
         let harness = try FeatureHarness.make()
         try await harness.feature.bootstrap()

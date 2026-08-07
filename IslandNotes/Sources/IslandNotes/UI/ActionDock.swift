@@ -29,7 +29,7 @@ struct ActionDock: View {
             icon: .moveToLibrary,
             identifier: "archive-current-note",
             semantic: .move,
-            isEnabled: feature.canArchive,
+            availability: feature.contentActionAvailability,
             perform: { Task { try? await feature.archiveCurrentNote() } }
         )
     }
@@ -40,7 +40,7 @@ struct ActionDock: View {
             icon: .delete,
             identifier: "delete-current-note",
             semantic: .delete,
-            isEnabled: feature.canDelete,
+            availability: feature.contentActionAvailability,
             perform: feature.requestDelete
         )
     }
@@ -65,13 +65,11 @@ struct ActionDock: View {
             }
         }
         .buttonStyle(IslandButtonStyle(kind: liveSemantic.kind))
-        .disabled(!feature.canTogglePin)
+        .disabled(!feature.liveActionAvailability.isEnabled)
         .accessibilityIdentifier("toggle-pin")
         .accessibilityLabel(feature.pinState == .pinned ? "Live" : "Go Live")
         .accessibilityHint(
-            feature.pinState == .pinned
-                ? "Stops showing the current note on system surfaces"
-                : disabledActionHint(isEnabled: feature.canPin)
+            liveActionHint
         )
     }
 
@@ -83,9 +81,9 @@ struct ActionDock: View {
             role: action.semantic.role,
             action: action.perform
         )
-        .disabled(!action.isEnabled)
+        .disabled(!action.availability.isEnabled)
         .accessibilityIdentifier(action.identifier)
-        .accessibilityHint(disabledActionHint(isEnabled: action.isEnabled))
+        .accessibilityHint(action.availability.accessibilityHint)
     }
 
     private func expandedAction(_ action: DockAction) -> some View {
@@ -97,13 +95,18 @@ struct ActionDock: View {
             .frame(maxWidth: .infinity)
         }
         .buttonStyle(IslandButtonStyle(kind: action.semantic.kind))
-        .disabled(!action.isEnabled)
+        .disabled(!action.availability.isEnabled)
         .accessibilityIdentifier(action.identifier)
-        .accessibilityHint(disabledActionHint(isEnabled: action.isEnabled))
+        .accessibilityHint(action.availability.accessibilityHint)
     }
 
-    private func disabledActionHint(isEnabled: Bool) -> String {
-        isEnabled ? "" : "The current note needs non-whitespace text"
+    private var liveActionHint: String {
+        guard feature.liveActionAvailability.isEnabled else {
+            return feature.liveActionAvailability.accessibilityHint
+        }
+        return feature.pinState == .pinned
+            ? "Stops showing the current note on system surfaces"
+            : ""
     }
 
     private var liveSemantic: WorkbenchActionSemantic {
@@ -116,7 +119,7 @@ private struct DockAction {
     let icon: AppIcon
     let identifier: String
     let semantic: WorkbenchActionSemantic
-    let isEnabled: Bool
+    let availability: WorkbenchActionAvailability
     let perform: () -> Void
 }
 

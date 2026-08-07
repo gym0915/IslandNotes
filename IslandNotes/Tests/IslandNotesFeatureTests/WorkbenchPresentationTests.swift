@@ -4,6 +4,50 @@ import XCTest
 
 @MainActor
 final class WorkbenchPresentationTests: XCTestCase {
+    func testActionDockAvailabilityDistinguishesBlankContentFromValidBusyNote() async throws {
+        let harness = try FeatureHarness.make()
+        try await harness.feature.bootstrap()
+
+        XCTAssertEqual(harness.feature.contentActionAvailability, .needsContent)
+        XCTAssertEqual(
+            harness.feature.contentActionAvailability.accessibilityHint,
+            "The current note needs non-whitespace text"
+        )
+
+        try harness.commitCurrentNote("Valid note starting Live")
+        harness.controller.pauseRequests()
+        let start = Task { await harness.feature.startPinning() }
+        await waitUntil { harness.controller.hasPausedRequest }
+
+        XCTAssertEqual(harness.feature.contentActionAvailability, .busy)
+        XCTAssertEqual(
+            harness.feature.contentActionAvailability.accessibilityHint,
+            "Another note action is in progress"
+        )
+
+        harness.controller.resumeRequests()
+        await start.value
+    }
+
+    func testWorkbenchActionAvailabilityDistinguishesContentAndBusyHints() {
+        XCTAssertTrue(WorkbenchActionAvailability.enabled.isEnabled)
+        XCTAssertEqual(WorkbenchActionAvailability.enabled.accessibilityHint, "")
+        XCTAssertFalse(WorkbenchActionAvailability.needsContent.isEnabled)
+        XCTAssertEqual(
+            WorkbenchActionAvailability.needsContent.accessibilityHint,
+            "The current note needs non-whitespace text"
+        )
+        XCTAssertFalse(WorkbenchActionAvailability.busy.isEnabled)
+        XCTAssertEqual(
+            WorkbenchActionAvailability.busy.accessibilityHint,
+            "Another note action is in progress"
+        )
+        XCTAssertEqual(
+            WorkbenchActionAvailability.busy.feedbackMessage,
+            "Another note action is in progress."
+        )
+    }
+
     func testWorkbenchActionsMapToStableSemanticKindsAndRoles() {
         XCTAssertEqual(WorkbenchActionSemantic.move.kind, .neutral)
         XCTAssertNil(WorkbenchActionSemantic.move.role)
@@ -48,5 +92,16 @@ final class WorkbenchPresentationTests: XCTestCase {
         try await controller.end(activityID: requested.activityID)
         let endedActivities = await controller.activities()
         XCTAssertTrue(endedActivities.isEmpty)
+    }
+
+    private func waitUntil(
+        attempts: Int = 100,
+        condition: @escaping @MainActor () -> Bool
+    ) async {
+        for _ in 0 ..< attempts {
+            if condition() { return }
+            await Task.yield()
+        }
+        XCTFail("Timed out waiting for asynchronous test state")
     }
 }

@@ -167,8 +167,13 @@ struct WorkbenchView: View {
                             .contentShape(Rectangle())
                     }
                     .buttonStyle(.plain)
+                    .disabled(!feature.canBeginEditing)
                     .accessibilityIdentifier("rendered-note")
-                    .accessibilityHint("Edit the current note source")
+                    .accessibilityHint(
+                        feature.canBeginEditing
+                            ? "Edit the current note source"
+                            : feature.noteMutationAvailability.accessibilityHint
+                    )
                 }
 
                 HStack(spacing: IslandDesign.Spacing.x2) {
@@ -177,7 +182,9 @@ struct WorkbenchView: View {
                             try? feature.completeEditing()
                         }
                         .buttonStyle(IslandButtonStyle(kind: .primary))
+                        .disabled(!feature.canCompleteEditing)
                         .accessibilityIdentifier("done-editing")
+                        .accessibilityHint(feature.noteMutationAvailability.accessibilityHint)
                     }
 
                     Spacer(minLength: IslandDesign.Spacing.x2)

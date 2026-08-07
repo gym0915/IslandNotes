@@ -11,6 +11,37 @@ enum DeleteConfirmation: Equatable, Sendable {
     case pending(message: String)
 }
 
+enum WorkbenchActionAvailability: Equatable, Sendable {
+    case enabled
+    case needsContent
+    case busy
+
+    var isEnabled: Bool {
+        self == .enabled
+    }
+
+    var accessibilityHint: String {
+        switch self {
+        case .enabled:
+            ""
+        case .needsContent:
+            "The current note needs non-whitespace text"
+        case .busy:
+            "Another note action is in progress"
+        }
+    }
+
+    var feedbackMessage: String? {
+        self == .busy ? "Another note action is in progress." : nil
+    }
+}
+
+private enum CurrentNoteOperation: Equatable {
+    case idle
+    case mutation
+    case liveTransition
+}
+
 private struct PendingActivityUpdate: Equatable, Sendable {
     let noteID: UUID
     let body: String
@@ -35,8 +66,7 @@ final class IslandNotesFeature {
     private(set) var deleteConfirmation: DeleteConfirmation?
     private(set) var feedbackMessage: String?
     private(set) var hasActivityInconsistency = false
-    private(set) var isArchiveInFlight = false
-    private(set) var isLiveTransitionInFlight = false
+    private var currentNoteOperation: CurrentNoteOperation = .idle
 
     var isEditing: Bool { editingDraft != nil }
     var editingText: String { editingDraft ?? currentNote?.body ?? "" }
@@ -53,25 +83,35 @@ final class IslandNotesFeature {
         )
     }
 
-    var canArchive: Bool {
-        !isArchiveInFlight
-            && !isLiveTransitionInFlight
-            && currentNote.map { NoteContent.isActionable($0.body) } == true
+    var isNoteActionInFlight: Bool {
+        currentNoteOperation != .idle
     }
-    var canPin: Bool {
-        !isArchiveInFlight
-            && !isLiveTransitionInFlight
-            && currentNote.map { NoteContent.isActionable($0.body) } == true
+
+    var contentActionAvailability: WorkbenchActionAvailability {
+        if isNoteActionInFlight { return .busy }
+        return currentNote.map { NoteContent.isActionable($0.body) } == true
+            ? .enabled
+            : .needsContent
     }
+
+    var noteMutationAvailability: WorkbenchActionAvailability {
+        isNoteActionInFlight ? .busy : .enabled
+    }
+
+    var liveActionAvailability: WorkbenchActionAvailability {
+        if isNoteActionInFlight { return .busy }
+        return pinState == .pinned ? .enabled : contentActionAvailability
+    }
+
+    var canArchive: Bool { contentActionAvailability.isEnabled }
+    var canPin: Bool { contentActionAvailability.isEnabled }
     var canTogglePin: Bool {
-        guard !isArchiveInFlight, !isLiveTransitionInFlight else { return false }
-        return pinState == .pinned || canPin
+        liveActionAvailability.isEnabled
     }
-    var canDelete: Bool {
-        !isArchiveInFlight
-            && !isLiveTransitionInFlight
-            && currentNote.map { NoteContent.isActionable($0.body) } == true
-    }
+    var canDelete: Bool { contentActionAvailability.isEnabled }
+    var canBeginEditing: Bool { noteMutationAvailability.isEnabled }
+    var canCompleteEditing: Bool { isEditing && noteMutationAvailability.isEnabled }
+    var canSelectLibraryNote: Bool { noteMutationAvailability.isEnabled }
     let canOpenLibrary = true
 
     init(
@@ -103,6 +143,10 @@ final class IslandNotesFeature {
     }
 
     func beginEditing() {
+        guard canBeginEditing else {
+            reportBusyAction()
+            return
+        }
         guard editingDraft == nil else { return }
         let source = currentNote?.body ?? ""
         editingDraft = source
@@ -125,6 +169,10 @@ final class IslandNotesFeature {
 
     func completeEditing() throws {
         guard let editingDraft else { return }
+        guard canCompleteEditing else {
+            reportBusyAction()
+            return
+        }
         let finalized = TextLimiter.limit(
             proposedText: editingDraft,
             markedTextActive: false
@@ -160,8 +208,8 @@ final class IslandNotesFeature {
 
     func archiveCurrentNote() async throws {
         guard canArchive, let currentNote else { return }
-        isArchiveInFlight = true
-        defer { isArchiveInFlight = false }
+        currentNoteOperation = .mutation
+        defer { currentNoteOperation = .idle }
         guard await endCurrentActivityBarrier(noteID: currentNote.id) else { return }
 
         do {
@@ -175,8 +223,14 @@ final class IslandNotesFeature {
     }
 
     func selectLibraryNote(id: UUID) async throws {
+        guard canSelectLibraryNote else {
+            reportBusyAction()
+            return
+        }
         guard library.contains(where: { $0.id == id }),
               let currentNote else { return }
+        currentNoteOperation = .mutation
+        defer { currentNoteOperation = .idle }
         guard await endCurrentActivityBarrier(noteID: currentNote.id) else { return }
 
         do {
@@ -201,6 +255,12 @@ final class IslandNotesFeature {
     func confirmDeleteCurrentNote() async throws {
         guard deleteConfirmation != nil,
               let currentNote else { return }
+        guard noteMutationAvailability.isEnabled else {
+            reportBusyAction()
+            return
+        }
+        currentNoteOperation = .mutation
+        defer { currentNoteOperation = .idle }
         guard await endCurrentActivityBarrier(noteID: currentNote.id) else { return }
 
         do {
@@ -216,8 +276,8 @@ final class IslandNotesFeature {
 
     func startPinning() async {
         guard canPin, let currentNote else { return }
-        isLiveTransitionInFlight = true
-        defer { isLiveTransitionInFlight = false }
+        currentNoteOperation = .liveTransition
+        defer { currentNoteOperation = .idle }
         await reconcileActivities()
         if pinState == .pinned { return }
         guard !hasActivityInconsistency else { return }
@@ -246,15 +306,17 @@ final class IslandNotesFeature {
             ? .pinned
             : .unpinned
         hasActivityInconsistency = pinState == .unpinned && !refreshed.isEmpty
-        if pinState == .unpinned {
+        if pinState == .pinned {
+            feedbackMessage = nil
+        } else {
             feedbackMessage = "Couldn't start Live. Try again."
         }
     }
 
     func cancelPinning() async {
         guard canTogglePin, let currentNote else { return }
-        isLiveTransitionInFlight = true
-        defer { isLiveTransitionInFlight = false }
+        currentNoteOperation = .liveTransition
+        defer { currentNoteOperation = .idle }
         _ = await endCurrentActivityBarrier(noteID: currentNote.id)
     }
 
@@ -369,6 +431,10 @@ final class IslandNotesFeature {
         characterDetailCancellation = nil
         isCharacterCountVisible = false
         editingDraft = nil
+    }
+
+    private func reportBusyAction() {
+        feedbackMessage = WorkbenchActionAvailability.busy.feedbackMessage
     }
 
     private func endCurrentActivityBarrier(noteID: UUID) async -> Bool {

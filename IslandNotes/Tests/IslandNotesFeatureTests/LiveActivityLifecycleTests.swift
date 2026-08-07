@@ -3,6 +3,81 @@ import XCTest
 
 @MainActor
 final class LiveActivityLifecycleTests: XCTestCase {
+    func testRapidLiveStartsIssueOnlyOneSystemRequest() async throws {
+        let harness = try FeatureHarness.make()
+        try await harness.feature.bootstrap()
+        try harness.commitCurrentNote("Only one Live request")
+        harness.controller.pauseRequests()
+
+        let firstStart = Task { await harness.feature.startPinning() }
+        await waitUntil { harness.controller.requestCallCount == 1 }
+        XCTAssertFalse(harness.feature.canPin)
+        XCTAssertFalse(harness.feature.canArchive)
+        XCTAssertFalse(harness.feature.canDelete)
+
+        let secondStart = Task { await harness.feature.startPinning() }
+        await drainReadyTasks()
+
+        XCTAssertEqual(harness.controller.requestCallCount, 1)
+
+        harness.controller.resumeRequests()
+        await firstStart.value
+        await secondStart.value
+
+        XCTAssertEqual(harness.controller.requestCallCount, 1)
+        XCTAssertEqual(harness.controller.activeActivities.count, 1)
+        XCTAssertEqual(harness.feature.pinState, .pinned)
+    }
+
+    func testRapidLiveStopsIssueOnlyOneSystemEndAndRemainStoppable() async throws {
+        let harness = try FeatureHarness.make()
+        try await harness.feature.bootstrap()
+        try harness.commitCurrentNote("Stop one Live activity")
+        await harness.feature.startPinning()
+        harness.controller.pauseEnds()
+
+        let firstStop = Task { await harness.feature.cancelPinning() }
+        await waitUntil { harness.controller.endCallCount == 1 }
+        XCTAssertFalse(harness.feature.canTogglePin)
+
+        let secondStop = Task { await harness.feature.cancelPinning() }
+        await drainReadyTasks()
+        XCTAssertEqual(harness.controller.endCallCount, 1)
+
+        harness.controller.resumeEnds()
+        await firstStop.value
+        await secondStop.value
+
+        XCTAssertEqual(harness.controller.endCallCount, 1)
+        XCTAssertEqual(harness.feature.pinState, .unpinned)
+        XCTAssertTrue(harness.feature.canTogglePin)
+    }
+
+    func testRapidMovesEnterOneBarrierAndPerformOneMutation() async throws {
+        let harness = try FeatureHarness.make()
+        try await harness.feature.bootstrap()
+        try harness.commitCurrentNote("Move exactly once")
+        let activitiesBaseline = harness.controller.activitiesCallCount
+        harness.controller.pauseNextActivities()
+
+        let firstMove = Task { try await harness.feature.archiveCurrentNote() }
+        await waitUntil { harness.controller.hasPausedActivitiesCall }
+        XCTAssertFalse(harness.feature.canArchive)
+
+        let secondMove = Task { try await harness.feature.archiveCurrentNote() }
+        await drainReadyTasks()
+
+        XCTAssertEqual(harness.controller.activitiesCallCount, activitiesBaseline + 1)
+
+        harness.controller.resumeActivities()
+        try await firstMove.value
+        try await secondMove.value
+
+        XCTAssertEqual(harness.feature.library.map(\.body), ["Move exactly once"])
+        XCTAssertEqual(harness.feature.currentNote?.body, "")
+        XCTAssertEqual(try harness.notes().count, 2)
+    }
+
     func testStartingAndRepeatingPinUsesOneCurrentActivity() async throws {
         let harness = try FeatureHarness.make()
         try await harness.feature.bootstrap()
@@ -287,5 +362,22 @@ final class LiveActivityLifecycleTests: XCTestCase {
         XCTAssertEqual(harness.controller.activeActivities.first?.body, exactlyAtLimit)
         XCTAssertEqual(harness.feature.pinState, .pinned)
         XCTAssertNotNil(harness.feature.feedbackMessage)
+    }
+
+    private func waitUntil(
+        attempts: Int = 100,
+        condition: @escaping @MainActor () -> Bool
+    ) async {
+        for _ in 0 ..< attempts {
+            if condition() { return }
+            await Task.yield()
+        }
+        XCTFail("Timed out waiting for asynchronous test state")
+    }
+
+    private func drainReadyTasks() async {
+        for _ in 0 ..< 10 {
+            await Task.yield()
+        }
     }
 }

@@ -3,21 +3,49 @@ import SwiftUI
 struct IslandIconButton: View {
     let icon: AppIcon
     let label: String
+    var kind: IslandActionKind = .neutral
+    var role: ButtonRole?
     let action: () -> Void
 
+    init(
+        icon: AppIcon,
+        label: String,
+        kind: IslandActionKind = .neutral,
+        role: ButtonRole? = nil,
+        action: @escaping () -> Void
+    ) {
+        self.icon = icon
+        self.label = label
+        self.kind = kind
+        self.role = role
+        self.action = action
+    }
+
     var body: some View {
-        Button(action: action) {
+        Button(role: role, action: action) {
             AppIconView(icon: icon)
-                .foregroundStyle(IslandDesign.Colors.primaryText)
+                .foregroundStyle(kind.foreground)
                 .frame(
                     width: IslandDesign.Sizing.minimumTouchTarget,
                     height: IslandDesign.Sizing.minimumTouchTarget
                 )
-                .background(IslandDesign.Materials.control, in: Circle())
+                .background(background, in: Circle())
+                .overlay {
+                    Circle()
+                        .stroke(kind.border, lineWidth: IslandDesign.Sizing.hairline)
+                }
                 .contentShape(Circle())
         }
         .buttonStyle(IslandIconPressStyle())
         .accessibilityLabel(Text(label))
+    }
+
+    private var background: AnyShapeStyle {
+        if kind == .neutral {
+            AnyShapeStyle(IslandDesign.Materials.control)
+        } else {
+            AnyShapeStyle(kind.background)
+        }
     }
 }
 

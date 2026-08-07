@@ -35,6 +35,8 @@ final class IslandNotesFeature {
     private(set) var deleteConfirmation: DeleteConfirmation?
     private(set) var feedbackMessage: String?
     private(set) var hasActivityInconsistency = false
+    private(set) var isArchiveInFlight = false
+    private(set) var isLiveTransitionInFlight = false
 
     var isEditing: Bool { editingDraft != nil }
     var editingText: String { editingDraft ?? currentNote?.body ?? "" }
@@ -51,9 +53,25 @@ final class IslandNotesFeature {
         )
     }
 
-    var canArchive: Bool { currentNote.map { NoteContent.isActionable($0.body) } == true }
-    var canPin: Bool { currentNote.map { NoteContent.isActionable($0.body) } == true }
-    var canDelete: Bool { currentNote.map { NoteContent.isActionable($0.body) } == true }
+    var canArchive: Bool {
+        !isArchiveInFlight
+            && !isLiveTransitionInFlight
+            && currentNote.map { NoteContent.isActionable($0.body) } == true
+    }
+    var canPin: Bool {
+        !isArchiveInFlight
+            && !isLiveTransitionInFlight
+            && currentNote.map { NoteContent.isActionable($0.body) } == true
+    }
+    var canTogglePin: Bool {
+        guard !isArchiveInFlight, !isLiveTransitionInFlight else { return false }
+        return pinState == .pinned || canPin
+    }
+    var canDelete: Bool {
+        !isArchiveInFlight
+            && !isLiveTransitionInFlight
+            && currentNote.map { NoteContent.isActionable($0.body) } == true
+    }
     let canOpenLibrary = true
 
     init(
@@ -142,6 +160,8 @@ final class IslandNotesFeature {
 
     func archiveCurrentNote() async throws {
         guard canArchive, let currentNote else { return }
+        isArchiveInFlight = true
+        defer { isArchiveInFlight = false }
         guard await endCurrentActivityBarrier(noteID: currentNote.id) else { return }
 
         do {
@@ -196,6 +216,8 @@ final class IslandNotesFeature {
 
     func startPinning() async {
         guard canPin, let currentNote else { return }
+        isLiveTransitionInFlight = true
+        defer { isLiveTransitionInFlight = false }
         await reconcileActivities()
         if pinState == .pinned { return }
         guard !hasActivityInconsistency else { return }
@@ -230,7 +252,9 @@ final class IslandNotesFeature {
     }
 
     func cancelPinning() async {
-        guard let currentNote else { return }
+        guard canTogglePin, let currentNote else { return }
+        isLiveTransitionInFlight = true
+        defer { isLiveTransitionInFlight = false }
         _ = await endCurrentActivityBarrier(noteID: currentNote.id)
     }
 

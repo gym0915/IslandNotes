@@ -6,7 +6,7 @@ struct IslandNotesApp: App {
     nonisolated static let minimumSupportedMajorVersion = 17
 
     private let container: ModelContainer
-    private let liveActivityController: ActivityKitLiveActivityController
+    private let liveActivityController: any LiveActivityControlling
     private let initialDeepLink: URL?
     private let simulatesSaveFailure: Bool
     @State private var appearance: AppearanceSettings
@@ -34,7 +34,16 @@ struct IslandNotesApp: App {
             container.mainContext.insert(WorkbenchRecord(currentNoteID: note.id))
             try! container.mainContext.save()
         }
+#if DEBUG
+        switch LiveActivityControllerSelection.mode(arguments: arguments) {
+        case .system:
+            liveActivityController = ActivityKitLiveActivityController()
+        case .deterministicUITest:
+            liveActivityController = DeterministicUITestLiveActivityController()
+        }
+#else
         liveActivityController = ActivityKitLiveActivityController()
+#endif
         initialDeepLink = Self.uiTestingDeepLink(from: arguments)
     }
 

@@ -31,6 +31,7 @@ struct CharacterProgressView: View {
                 .background(IslandDesign.Colors.primaryText, in: Capsule())
                 .transition(.opacity)
                 .accessibilityIdentifier("character-progress-detail")
+                .accessibilityHidden(true)
         }
     }
 

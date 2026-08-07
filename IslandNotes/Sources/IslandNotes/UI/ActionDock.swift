@@ -28,7 +28,7 @@ struct ActionDock: View {
             title: "Move to Note Library",
             icon: .moveToLibrary,
             identifier: "archive-current-note",
-            kind: .neutral,
+            semantic: .move,
             isEnabled: feature.canArchive,
             perform: { Task { try? await feature.archiveCurrentNote() } }
         )
@@ -39,7 +39,7 @@ struct ActionDock: View {
             title: "Delete Note",
             icon: .delete,
             identifier: "delete-current-note",
-            kind: .destructive,
+            semantic: .delete,
             isEnabled: feature.canDelete,
             perform: feature.requestDelete
         )
@@ -64,10 +64,8 @@ struct ActionDock: View {
                 }
             }
         }
-        .buttonStyle(
-            IslandButtonStyle(kind: feature.pinState == .pinned ? .live : .neutral)
-        )
-        .disabled(feature.pinState != .pinned && !feature.canPin)
+        .buttonStyle(IslandButtonStyle(kind: liveSemantic.kind))
+        .disabled(!feature.canTogglePin)
         .accessibilityIdentifier("toggle-pin")
         .accessibilityLabel(feature.pinState == .pinned ? "Live" : "Go Live")
         .accessibilityHint(
@@ -81,6 +79,8 @@ struct ActionDock: View {
         IslandIconButton(
             icon: action.icon,
             label: action.title,
+            kind: action.semantic.kind,
+            role: action.semantic.role,
             action: action.perform
         )
         .disabled(!action.isEnabled)
@@ -89,14 +89,14 @@ struct ActionDock: View {
     }
 
     private func expandedAction(_ action: DockAction) -> some View {
-        Button(action: action.perform) {
+        Button(role: action.semantic.role, action: action.perform) {
             HStack(spacing: IslandDesign.Spacing.x2) {
                 AppIconView(icon: action.icon, size: IslandDesign.Sizing.smallIcon)
                 Text(action.title)
             }
             .frame(maxWidth: .infinity)
         }
-        .buttonStyle(IslandButtonStyle(kind: action.kind))
+        .buttonStyle(IslandButtonStyle(kind: action.semantic.kind))
         .disabled(!action.isEnabled)
         .accessibilityIdentifier(action.identifier)
         .accessibilityHint(disabledActionHint(isEnabled: action.isEnabled))
@@ -105,13 +105,36 @@ struct ActionDock: View {
     private func disabledActionHint(isEnabled: Bool) -> String {
         isEnabled ? "" : "The current note needs non-whitespace text"
     }
+
+    private var liveSemantic: WorkbenchActionSemantic {
+        feature.pinState == .pinned ? .live : .goLive
+    }
 }
 
 private struct DockAction {
     let title: String
     let icon: AppIcon
     let identifier: String
-    let kind: IslandActionKind
+    let semantic: WorkbenchActionSemantic
     let isEnabled: Bool
     let perform: () -> Void
+}
+
+enum WorkbenchActionSemantic: Equatable {
+    case move
+    case goLive
+    case live
+    case delete
+
+    var kind: IslandActionKind {
+        switch self {
+        case .move, .goLive: .neutral
+        case .live: .live
+        case .delete: .destructive
+        }
+    }
+
+    var role: ButtonRole? {
+        self == .delete ? .destructive : nil
+    }
 }

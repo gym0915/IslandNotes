@@ -144,6 +144,7 @@ struct WorkbenchView: View {
                                 .foregroundStyle(IslandDesign.Colors.placeholder)
                                 .padding(.top, IslandDesign.Spacing.x1)
                                 .allowsHitTesting(false)
+                                .accessibilityHidden(true)
                         }
                         MarkedTextEditor(text: feature.editingText) {
                             proposedText,

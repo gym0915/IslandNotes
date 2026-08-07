@@ -15,7 +15,7 @@ enum IslandActionKind: CaseIterable, Equatable, Sendable {
         }
     }
 
-    fileprivate var background: Color {
+    var background: Color {
         switch self {
         case .primary: IslandDesign.Colors.primaryText
         case .neutral: IslandDesign.Colors.raisedSurface
@@ -24,7 +24,7 @@ enum IslandActionKind: CaseIterable, Equatable, Sendable {
         }
     }
 
-    fileprivate var foreground: Color {
+    var foreground: Color {
         switch self {
         case .primary: IslandDesign.Colors.canvas
         case .neutral, .live: IslandDesign.Colors.primaryText
@@ -32,7 +32,7 @@ enum IslandActionKind: CaseIterable, Equatable, Sendable {
         }
     }
 
-    fileprivate var border: Color {
+    var border: Color {
         switch self {
         case .live: IslandDesign.Colors.border
         case .primary, .neutral, .destructive: .clear

@@ -16,19 +16,45 @@ enum FakeEndOutcome {
 @MainActor
 final class FakeLiveActivityController: LiveActivityControlling {
     private(set) var activeActivities: [ActivitySession] = []
+    private(set) var activitiesCallCount = 0
+    private(set) var requestCallCount = 0
+    private(set) var endCallCount = 0
     var requestFailure: Error?
     var updateFailure: Error?
     var endOutcome: FakeEndOutcome = .remove
+    private var pausesNextActivitiesCall = false
+    private var activitiesContinuation: CheckedContinuation<Void, Never>?
+    private var pausesRequests = false
+    private var requestContinuations: [CheckedContinuation<Void, Never>] = []
+    private var pausesEnds = false
+    private var endContinuations: [CheckedContinuation<Void, Never>] = []
+
+    var hasPausedActivitiesCall: Bool {
+        activitiesContinuation != nil
+    }
 
     func seedActivities(_ activities: [ActivitySession]) {
         activeActivities = activities
     }
 
     func activities() async -> [ActivitySession] {
-        activeActivities
+        activitiesCallCount += 1
+        if pausesNextActivitiesCall {
+            pausesNextActivitiesCall = false
+            await withCheckedContinuation { continuation in
+                activitiesContinuation = continuation
+            }
+        }
+        return activeActivities
     }
 
     func request(noteID: UUID, body: String, version: Int) async throws {
+        requestCallCount += 1
+        if pausesRequests {
+            await withCheckedContinuation { continuation in
+                requestContinuations.append(continuation)
+            }
+        }
         if let requestFailure {
             throw requestFailure
         }
@@ -61,6 +87,12 @@ final class FakeLiveActivityController: LiveActivityControlling {
     }
 
     func end(activityID: String) async throws {
+        endCallCount += 1
+        if pausesEnds {
+            await withCheckedContinuation { continuation in
+                endContinuations.append(continuation)
+            }
+        }
         switch endOutcome {
         case .remove:
             activeActivities.removeAll { $0.activityID == activityID }
@@ -70,5 +102,37 @@ final class FakeLiveActivityController: LiveActivityControlling {
         case .keepThenThrow:
             throw FakeLiveActivityError.endFailed
         }
+    }
+
+    func pauseNextActivities() {
+        pausesNextActivitiesCall = true
+    }
+
+    func resumeActivities() {
+        let continuation = activitiesContinuation
+        activitiesContinuation = nil
+        continuation?.resume()
+    }
+
+    func pauseRequests() {
+        pausesRequests = true
+    }
+
+    func resumeRequests() {
+        pausesRequests = false
+        let continuations = requestContinuations
+        requestContinuations.removeAll()
+        continuations.forEach { $0.resume() }
+    }
+
+    func pauseEnds() {
+        pausesEnds = true
+    }
+
+    func resumeEnds() {
+        pausesEnds = false
+        let continuations = endContinuations
+        endContinuations.removeAll()
+        continuations.forEach { $0.resume() }
     }
 }

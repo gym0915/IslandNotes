@@ -84,7 +84,7 @@ struct AppRootView: View {
             }
         case .settings:
             AppSheetContainer(title: "Settings", close: router.dismissSheet) {
-                SettingsView()
+                SettingsView(appearance: appearance)
             }
         }
     }

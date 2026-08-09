@@ -17,6 +17,8 @@ enum AppIcon: String, CaseIterable {
     case about = "lucide-info"
     case check = "lucide-check"
     case noteBrand = "lucide-notebook-text"
+    case chevronDown = "lucide-chevron-down"
+    case chevronRight = "lucide-chevron-right"
 
     static let automatic: AppIcon = .appearance
 

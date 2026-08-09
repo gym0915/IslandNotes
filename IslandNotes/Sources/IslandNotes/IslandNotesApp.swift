@@ -12,8 +12,12 @@ struct IslandNotesApp: App {
     @State private var appearance: AppearanceSettings
 
     init() {
-        _appearance = State(initialValue: AppearanceSettings())
         let arguments = ProcessInfo.processInfo.arguments
+        _appearance = State(
+            initialValue: AppearanceSettings(
+                defaults: Self.appearanceDefaults(arguments: arguments)
+            )
+        )
         let isUITesting = arguments.contains("--uitesting-reset")
         simulatesSaveFailure = arguments.contains("--uitesting-save-failure")
         let configuration = ModelConfiguration(isStoredInMemoryOnly: isUITesting)
@@ -67,5 +71,19 @@ struct IslandNotesApp: App {
             return nil
         }
         return URL(string: arguments[flagIndex + 1])
+    }
+
+    private static func appearanceDefaults(arguments: [String]) -> UserDefaults {
+        guard let flagIndex = arguments.firstIndex(of: "--uitesting-appearance-suite"),
+              arguments.indices.contains(flagIndex + 1) else {
+            return .standard
+        }
+
+        let suiteName = arguments[flagIndex + 1]
+        let defaults = UserDefaults(suiteName: suiteName) ?? .standard
+        if arguments.contains("--uitesting-reset-appearance") {
+            defaults.removePersistentDomain(forName: suiteName)
+        }
+        return defaults
     }
 }

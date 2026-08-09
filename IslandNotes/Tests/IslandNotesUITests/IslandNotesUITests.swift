@@ -3,11 +3,26 @@ import XCTest
 @MainActor
 final class IslandNotesUITests: XCTestCase {
     private func launchCleanApp() -> XCUIApplication {
+        launchApp(
+            appearanceSuite: "IslandNotesUITests.clean",
+            resetsAppearance: true
+        )
+    }
+
+    private func launchApp(
+        appearanceSuite: String,
+        resetsAppearance: Bool
+    ) -> XCUIApplication {
         let app = XCUIApplication()
         app.launchArguments = [
             "--uitesting-reset",
             "--uitesting-fake-live-activity",
+            "--uitesting-appearance-suite",
+            appearanceSuite,
         ]
+        if resetsAppearance {
+            app.launchArguments.append("--uitesting-reset-appearance")
+        }
         app.launch()
         return app
     }
@@ -78,17 +93,55 @@ final class IslandNotesUITests: XCTestCase {
         XCTAssertFalse(app.otherElements["app-sheet"].exists)
     }
 
-    func testSettingsUsesTheSharedSheetWithTransitionalContent() {
+    func testSettingsUsesPrototypeAppearanceAndSupportGroups() {
         let app = launchCleanApp()
 
-        XCTAssertTrue(app.buttons["open-more-menu"].waitForExistence(timeout: 5))
-        app.buttons["open-more-menu"].tap()
-        app.buttons["open-settings"].tap()
+        openSettings(in: app)
 
         XCTAssertTrue(app.otherElements["app-sheet"].waitForExistence(timeout: 3))
         XCTAssertTrue(app.staticTexts["Settings"].exists)
-        XCTAssertTrue(app.staticTexts["Appearance settings are coming in a later update."].exists)
+        XCTAssertTrue(app.staticTexts["Appearance"].exists)
+        XCTAssertTrue(app.staticTexts["Support"].exists)
+        XCTAssertEqual(app.buttons["display-mode-menu"].value as? String, "Automatic")
+        XCTAssertTrue(app.buttons["settings-feedback"].exists)
+        XCTAssertTrue(app.buttons["settings-website"].exists)
+        XCTAssertTrue(app.buttons["settings-about"].exists)
+        XCTAssertFalse(app.staticTexts["Privacy"].exists)
         XCTAssertGreaterThanOrEqual(app.buttons["close-sheet"].frame.height, 44)
+
+        for identifier in ["settings-feedback", "settings-website", "settings-about"] {
+            app.buttons[identifier].tap()
+            XCTAssertTrue(app.otherElements["app-sheet"].exists)
+            XCTAssertTrue(settingsContent(in: app).exists)
+        }
+    }
+
+    func testSettingsSelectsAutomaticLightAndDarkWithImmediateSheetSemantics() {
+        let app = launchCleanApp()
+        openSettings(in: app)
+
+        selectAppearance("Dark", in: app)
+        XCTAssertEqual(settingsContent(in: app).value as? String, "Dark")
+
+        selectAppearance("Light", in: app)
+        XCTAssertEqual(settingsContent(in: app).value as? String, "Light")
+
+        selectAppearance("Automatic", in: app)
+        XCTAssertEqual(settingsContent(in: app).value as? String, "Automatic")
+    }
+
+    func testAppearanceSelectionPersistsAfterTerminationAndRelaunch() {
+        let suite = "IslandNotesUITests.persistence.\(UUID().uuidString)"
+        var app = launchApp(appearanceSuite: suite, resetsAppearance: true)
+        openSettings(in: app)
+        selectAppearance("Dark", in: app)
+        app.terminate()
+
+        app = launchApp(appearanceSuite: suite, resetsAppearance: false)
+        openSettings(in: app)
+
+        XCTAssertEqual(app.buttons["display-mode-menu"].value as? String, "Dark")
+        XCTAssertEqual(settingsContent(in: app).value as? String, "Dark")
     }
 
     func testEmptyWorkbenchExposesDisplaySurfaceLibraryAndDisabledActions() {
@@ -359,5 +412,32 @@ final class IslandNotesUITests: XCTestCase {
         XCTAssertTrue(feedback.waitForExistence(timeout: 2))
         XCTAssertEqual(feedback.label, "Recoverable message")
         XCTAssertEqual(feedback.value as? String, "Your note hasn't been saved.")
+    }
+
+    private func openSettings(in app: XCUIApplication) {
+        XCTAssertTrue(app.buttons["open-more-menu"].waitForExistence(timeout: 5))
+        app.buttons["open-more-menu"].tap()
+        app.buttons["open-settings"].tap()
+        XCTAssertTrue(settingsContent(in: app).waitForExistence(timeout: 3))
+    }
+
+    private func selectAppearance(_ title: String, in app: XCUIApplication) {
+        let menu = app.buttons["display-mode-menu"]
+        XCTAssertTrue(menu.waitForExistence(timeout: 2))
+        menu.tap()
+
+        let option = app.buttons["appearance-mode-\(title.lowercased())"]
+        XCTAssertTrue(option.waitForExistence(timeout: 2))
+        option.tap()
+
+        let selected = XCTNSPredicateExpectation(
+            predicate: NSPredicate(format: "value == %@", title),
+            object: menu
+        )
+        XCTAssertEqual(XCTWaiter.wait(for: [selected], timeout: 3), .completed)
+    }
+
+    private func settingsContent(in app: XCUIApplication) -> XCUIElement {
+        app.descendants(matching: .any)["settings-content"]
     }
 }

@@ -21,6 +21,8 @@ final class DesignSystemTests: XCTestCase {
             .about: "lucide-info",
             .check: "lucide-check",
             .noteBrand: "lucide-notebook-text",
+            .chevronDown: "lucide-chevron-down",
+            .chevronRight: "lucide-chevron-right",
         ]
 
         XCTAssertEqual(Set(expectedAssetNames.keys), Set(AppIcon.allCases))

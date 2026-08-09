@@ -76,7 +76,7 @@ private enum PreviewFixtures {
     static func settings() -> some View {
         AppSheetPreviewHost {
             AppSheetContainer(title: "Settings", close: {}) {
-                SettingsView()
+                SettingsView(appearance: AppearanceSettings())
             }
         }
     }

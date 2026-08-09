@@ -8,8 +8,15 @@ enum LiveActivityRegion: CaseIterable, Sendable {
     case lockScreen
 }
 
+enum LiveActivityBrandMark: Equatable, Sendable {
+    case notebookText
+}
+
 struct LiveActivityPresentation: Equatable, Sendable {
+    let brandMark: LiveActivityBrandMark?
     let body: String?
+    let lineLimit: Int?
+    let accessibilityLabel: String?
     let destination: URL
 }
 
@@ -20,13 +27,38 @@ enum LiveActivityPresentationModel {
         for region: LiveActivityRegion,
         state: IslandNoteActivityAttributes.ContentState
     ) -> LiveActivityPresentation {
+        let showsBrandMark = switch region {
+        case .compactLeading, .minimal, .expanded, .lockScreen:
+            true
+        case .compactTrailing:
+            false
+        }
         let body: String? = switch region {
         case .expanded, .lockScreen:
-            state.body
+            RenderedNoteContent.displayString(from: state.body)
         case .compactLeading, .compactTrailing, .minimal:
             nil
         }
+        let lineLimit: Int? = switch region {
+        case .expanded, .lockScreen:
+            3
+        case .compactLeading, .compactTrailing, .minimal:
+            nil
+        }
+        let accessibilityLabel: String? = if let body {
+            "Island Notes, \(body)"
+        } else if showsBrandMark {
+            "Island Notes"
+        } else {
+            nil
+        }
 
-        return LiveActivityPresentation(body: body, destination: workbenchURL)
+        return LiveActivityPresentation(
+            brandMark: showsBrandMark ? .notebookText : nil,
+            body: body,
+            lineLimit: lineLimit,
+            accessibilityLabel: accessibilityLabel,
+            destination: workbenchURL
+        )
     }
 }

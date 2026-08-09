@@ -44,4 +44,13 @@ final class RenderedNoteContentTests: XCTestCase {
             "Plain\n• Bullet\n# heading\n* star\n• "
         )
     }
+
+    func testLiveActivityDisplayPreservesComposedEmojiAndLiteralMarkdown() {
+        XCTAssertEqual(
+            RenderedNoteContent.displayString(
+                from: "Family 👨‍👩‍👧‍👦\n- Depart 🧭🌿\n**still literal**"
+            ),
+            "Family 👨‍👩‍👧‍👦\n• Depart 🧭🌿\n**still literal**"
+        )
+    }
 }

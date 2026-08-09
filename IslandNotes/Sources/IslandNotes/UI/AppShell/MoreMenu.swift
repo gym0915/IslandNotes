@@ -10,6 +10,7 @@ struct MoreMenu: View {
                 title: "Note Library",
                 icon: .noteLibrary,
                 identifier: "open-note-library",
+                accessibilityValue: "Opens Note Library",
                 action: openNoteLibrary
             )
 
@@ -21,14 +22,15 @@ struct MoreMenu: View {
                 title: "Settings",
                 icon: .settings,
                 identifier: "open-settings",
+                accessibilityValue: "Opens Settings",
                 action: openSettings
             )
         }
         .padding(.vertical, IslandDesign.Spacing.x2)
         .frame(width: IslandDesign.Sizing.menuWidth)
-        .background(
-            IslandDesign.Materials.menu,
-            in: RoundedRectangle(
+        .background(IslandDesign.Materials.menu)
+        .clipShape(
+            RoundedRectangle(
                 cornerRadius: IslandDesign.Radius.compact,
                 style: .continuous
             )
@@ -38,10 +40,7 @@ struct MoreMenu: View {
                 cornerRadius: IslandDesign.Radius.compact,
                 style: .continuous
             )
-            .stroke(
-                IslandDesign.Colors.menuBorder,
-                lineWidth: IslandDesign.Sizing.hairline
-            )
+            .stroke(IslandDesign.Colors.menuBorder, lineWidth: IslandDesign.Sizing.hairline)
         }
         .shadow(
             color: IslandDesign.Elevation.menu.color,
@@ -57,6 +56,7 @@ struct MoreMenu: View {
         title: String,
         icon: AppIcon,
         identifier: String,
+        accessibilityValue: String,
         action: @escaping () -> Void
     ) -> some View {
         Button(action: action) {
@@ -73,5 +73,6 @@ struct MoreMenu: View {
         }
         .buttonStyle(.plain)
         .accessibilityIdentifier(identifier)
+        .accessibilityValue(accessibilityValue)
     }
 }

@@ -7,26 +7,26 @@ struct AppSheetContainer<Content: View>: View {
 
     var body: some View {
         VStack(spacing: 0) {
-            ZStack {
+            HStack(spacing: IslandDesign.Spacing.x2) {
+                Color.clear
+                    .frame(
+                        width: IslandDesign.Sizing.minimumTouchTarget,
+                        height: IslandDesign.Sizing.minimumTouchTarget
+                    )
+                    .accessibilityHidden(true)
+
+                Spacer(minLength: 0)
+
                 Text(title)
                     .font(IslandDesign.Typography.sheetTitle)
                     .foregroundStyle(IslandDesign.Colors.primaryText)
                     .multilineTextAlignment(.center)
+                    .accessibilityIdentifier("sheet-title")
 
-                HStack {
-                    Spacer()
-                    Button(action: close) {
-                        AppIconView(icon: .close, size: IslandDesign.Sizing.smallIcon)
-                            .frame(
-                                width: IslandDesign.Sizing.minimumTouchTarget,
-                                height: IslandDesign.Sizing.minimumTouchTarget
-                            )
-                            .background(IslandDesign.Colors.raisedSurface, in: Circle())
-                    }
-                    .buttonStyle(.plain)
+                Spacer(minLength: 0)
+
+                IslandIconButton(icon: .close, label: "Close", action: close)
                     .accessibilityIdentifier("close-sheet")
-                    .accessibilityLabel("Close")
-                }
             }
             .padding(.horizontal, IslandDesign.Spacing.x4)
             .padding(.vertical, IslandDesign.Spacing.x2)

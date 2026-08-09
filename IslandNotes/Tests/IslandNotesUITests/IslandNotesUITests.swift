@@ -23,8 +23,14 @@ final class IslandNotesUITests: XCTestCase {
         let menu = app.otherElements["more-menu"]
         XCTAssertTrue(menu.waitForExistence(timeout: 2))
         XCTAssertEqual(menu.buttons.count, 2)
-        XCTAssertTrue(app.buttons["open-note-library"].exists)
-        XCTAssertTrue(app.buttons["open-settings"].exists)
+        let library = app.buttons["open-note-library"]
+        let settings = app.buttons["open-settings"]
+        XCTAssertTrue(library.exists)
+        XCTAssertTrue(settings.exists)
+        XCTAssertEqual(library.value as? String, "Opens Note Library")
+        XCTAssertEqual(settings.value as? String, "Opens Settings")
+        XCTAssertGreaterThanOrEqual(library.frame.height, 44)
+        XCTAssertGreaterThanOrEqual(settings.frame.height, 44)
 
         app.scrollViews["workbench-root"]
             .coordinate(withNormalizedOffset: CGVector(dx: 0.1, dy: 0.9))
@@ -61,7 +67,9 @@ final class IslandNotesUITests: XCTestCase {
         app.buttons["open-note-library"].tap()
 
         XCTAssertTrue(app.otherElements["app-sheet"].waitForExistence(timeout: 3))
-        XCTAssertTrue(app.staticTexts["Note Library"].exists)
+        let title = app.staticTexts["sheet-title"]
+        XCTAssertTrue(title.exists)
+        XCTAssertEqual(title.label, "Note Library")
         let closeButton = app.buttons["close-sheet"]
         XCTAssertGreaterThanOrEqual(closeButton.frame.height, 44)
         closeButton.tap()

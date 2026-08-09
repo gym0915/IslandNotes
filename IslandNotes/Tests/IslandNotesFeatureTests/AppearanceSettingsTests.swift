@@ -39,6 +39,14 @@ final class AppearanceSettingsTests: XCTestCase {
         }
     }
 
+    func testPreviewSettingsCanChangeWithoutAUserDefaultsStore() {
+        let settings = AppearanceSettings(previewMode: .light)
+
+        settings.select(.dark)
+
+        XCTAssertEqual(settings.mode, .dark)
+    }
+
     func testAppearanceModesHaveStableEnglishTitles() {
         XCTAssertEqual(AppearanceMode.automatic.title, "Automatic")
         XCTAssertEqual(AppearanceMode.light.title, "Light")

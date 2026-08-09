@@ -67,16 +67,19 @@ private enum PreviewFixtures {
         let fixture = makeFeature(body: "", libraryBodies: libraryBodies)
         return AppSheetPreviewHost {
             AppSheetContainer(title: "Note Library", close: {}) {
-                NoteLibraryView(feature: fixture.feature)
+                NoteLibraryView(
+                    feature: fixture.feature,
+                    timestampFormatter: previewTimestampFormatter
+                )
             }
         }
         .modelContainer(fixture.container)
     }
 
-    static func settings() -> some View {
-        AppSheetPreviewHost {
+    static func settings(mode: AppearanceMode) -> some View {
+        return AppSheetPreviewHost {
             AppSheetContainer(title: "Settings", close: {}) {
-                SettingsView(appearance: AppearanceSettings())
+                SettingsView(appearance: AppearanceSettings(previewMode: mode))
             }
         }
     }
@@ -143,10 +146,21 @@ private enum PreviewFixtures {
         )
         return (feature, container)
     }
-}
 
-#Preview("Workbench · Empty") {
-    PreviewFixtures.workbench()
+    private static var previewTimestampFormatter: LibraryTimestampFormatter {
+        var calendar = Calendar(identifier: .gregorian)
+        let locale = Locale(identifier: "en_US_POSIX")
+        let timeZone = TimeZone(secondsFromGMT: 0)!
+        calendar.locale = locale
+        calendar.timeZone = timeZone
+
+        return LibraryTimestampFormatter(
+            calendar: calendar,
+            locale: locale,
+            timeZone: timeZone,
+            now: { Date(timeIntervalSinceReferenceDate: 800_000_000) }
+        )
+    }
 }
 
 #Preview("Workbench · Empty Light") {
@@ -193,13 +207,23 @@ private enum PreviewFixtures {
     .preferredColorScheme(.dark)
 }
 
-#Preview("Settings Sheet · Light") {
-    PreviewFixtures.settings()
+#Preview("Settings · Automatic · Light Environment") {
+    PreviewFixtures.settings(mode: .automatic)
         .preferredColorScheme(.light)
 }
 
-#Preview("Settings Sheet · Dark") {
-    PreviewFixtures.settings()
+#Preview("Settings · Automatic · Dark Environment") {
+    PreviewFixtures.settings(mode: .automatic)
+        .preferredColorScheme(.dark)
+}
+
+#Preview("Settings · Light Selected") {
+    PreviewFixtures.settings(mode: .light)
+        .preferredColorScheme(.light)
+}
+
+#Preview("Settings · Dark Selected") {
+    PreviewFixtures.settings(mode: .dark)
         .preferredColorScheme(.dark)
 }
 
@@ -237,78 +261,133 @@ private enum PreviewFixtures {
     PreviewFixtures.workbench(body: String(repeating: "字", count: 239))
 }
 
-#Preview("Workbench · 240 Characters") {
-    PreviewFixtures.workbench(body: String(repeating: "A", count: 240))
-}
-
-#Preview("Workbench · Character Limit") {
+#Preview("Workbench · Character Limit Light") {
     PreviewFixtures.workbench(
         body: String(repeating: "界", count: 240),
         showsCharacterDetails: true
     )
+    .preferredColorScheme(.light)
 }
 
-#Preview("Workbench · Editing at 240") {
+#Preview("Workbench · Character Limit Dark") {
+    PreviewFixtures.workbench(
+        body: String(repeating: "界", count: 240),
+        showsCharacterDetails: true
+    )
+    .preferredColorScheme(.dark)
+}
+
+#Preview("Workbench · Editing at 240 Light") {
     PreviewFixtures.workbench(
         body: "Saved value remains unchanged",
         editingDraft: String(repeating: "界", count: 240),
         showsCharacterDetails: true
     )
+    .preferredColorScheme(.light)
 }
 
-#Preview("Workbench · Save Error Retains Draft") {
+#Preview("Workbench · Editing at 240 Dark") {
+    PreviewFixtures.workbench(
+        body: "Saved value remains unchanged",
+        editingDraft: String(repeating: "界", count: 240),
+        showsCharacterDetails: true
+    )
+    .preferredColorScheme(.dark)
+}
+
+#Preview("Workbench · Save Error Light") {
     PreviewFixtures.workbench(
         body: "Last committed source",
         editingDraft: "Unsaved draft stays in the editor",
         feedback: "Your note hasn't been saved."
     )
+    .preferredColorScheme(.light)
 }
 
-#Preview("Workbench · Live") {
+#Preview("Workbench · Save Error Dark") {
+    PreviewFixtures.workbench(
+        body: "Last committed source",
+        editingDraft: "Unsaved draft stays in the editor",
+        feedback: "Your note hasn't been saved."
+    )
+    .preferredColorScheme(.dark)
+}
+
+#Preview("Workbench · Live Light") {
     PreviewFixtures.workbench(body: "This note is currently Live.", pinState: .pinned)
+        .preferredColorScheme(.light)
 }
 
-#Preview("Workbench · Update Not Synchronized") {
+#Preview("Workbench · Live Dark") {
+    PreviewFixtures.workbench(body: "This note is currently Live.", pinState: .pinned)
+        .preferredColorScheme(.dark)
+}
+
+#Preview("Workbench · Live Error Light") {
     PreviewFixtures.workbench(
         body: "This note is saved on this device.",
         pinState: .pinned,
         feedback: "Live may not be up to date."
     )
+    .preferredColorScheme(.light)
 }
 
-#Preview("Workbench · Delete Confirmation") {
+#Preview("Workbench · Live Error Dark") {
+    PreviewFixtures.workbench(
+        body: "This note is saved on this device.",
+        pinState: .pinned,
+        feedback: "Live may not be up to date."
+    )
+    .preferredColorScheme(.dark)
+}
+
+#Preview("Workbench · Delete Confirmation Light") {
     PreviewFixtures.workbench(body: "A note ready to delete", deleting: true)
+        .preferredColorScheme(.light)
 }
 
-#Preview("Workbench · Dark") {
-    PreviewFixtures.workbench(body: "The shell follows the dark appearance.")
+#Preview("Workbench · Delete Confirmation Dark") {
+    PreviewFixtures.workbench(body: "A note ready to delete", deleting: true)
         .preferredColorScheme(.dark)
 }
 
-#Preview("Workbench · Maximum Dynamic Type") {
+#Preview("Workbench · Maximum Dynamic Type Light") {
     PreviewFixtures.workbench(body: "All actions remain reachable at the largest text size.")
         .environment(\.dynamicTypeSize, .accessibility5)
+        .preferredColorScheme(.light)
 }
 
-#Preview("Workbench · Reduce Motion") {
+#Preview("Workbench · Maximum Dynamic Type Dark") {
+    PreviewFixtures.workbench(body: "All actions remain reachable at the largest text size.")
+        .environment(\.dynamicTypeSize, .accessibility5)
+        .preferredColorScheme(.dark)
+}
+
+#Preview("Workbench · Reduce Motion Light") {
     PreviewFixtures.workbench(
         body: "State is never communicated through motion alone.",
         pinState: .pinned,
         reduceMotion: true
     )
+    .preferredColorScheme(.light)
 }
 
-#Preview("Note Library · Empty") {
-    PreviewFixtures.library(libraryBodies: [])
-}
-
-#Preview("Note Library · Populated") {
-    PreviewFixtures.library(
-        libraryBodies: [
-            "Most recently moved note\nLine breaks remain intact",
-            "Second note with an emoji 🧭",
-            "An earlier note",
-        ]
+#Preview("Workbench · Reduce Motion Dark") {
+    PreviewFixtures.workbench(
+        body: "State is never communicated through motion alone.",
+        pinState: .pinned,
+        reduceMotion: true
     )
+    .preferredColorScheme(.dark)
+}
+
+#Preview("Note Library · Empty Light") {
+    PreviewFixtures.library(libraryBodies: [])
+        .preferredColorScheme(.light)
+}
+
+#Preview("Note Library · Empty Dark") {
+    PreviewFixtures.library(libraryBodies: [])
+        .preferredColorScheme(.dark)
 }
 #endif

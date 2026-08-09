@@ -326,46 +326,57 @@ final class IslandNotesFeature {
     func flushPendingActivityUpdate() async {
         activityUpdateTask?.cancel()
         activityUpdateTask = nil
-        guard let pendingActivityUpdate else { return }
+        while let update = pendingActivityUpdate {
+            activityUpdateTask?.cancel()
+            activityUpdateTask = nil
+            let activities = await liveActivityController.activities()
+                .filter { $0.isActive && $0.noteID == update.noteID }
+            guard pendingActivityUpdate == update else { continue }
+            guard activities.count == 1, let activity = activities.first else {
+                pendingActivityUpdate = nil
+                pinState = .unpinned
+                return
+            }
 
-        let activities = await liveActivityController.activities()
-            .filter { $0.isActive && $0.noteID == pendingActivityUpdate.noteID }
-        guard activities.count == 1, let activity = activities.first else {
-            self.pendingActivityUpdate = nil
-            pinState = .unpinned
-            return
-        }
-
-        let attributes = IslandNoteActivityAttributes(noteID: pendingActivityUpdate.noteID)
-        let state = IslandNoteActivityAttributes.ContentState(
-            body: pendingActivityUpdate.body,
-            version: pendingActivityUpdate.version
-        )
-
-        do {
-            try ActivityPayloadSizer.validate(attributes: attributes, state: state)
-            try await liveActivityController.update(
-                activityID: activity.activityID,
-                body: pendingActivityUpdate.body,
-                version: pendingActivityUpdate.version
+            let attributes = IslandNoteActivityAttributes(noteID: update.noteID)
+            let state = IslandNoteActivityAttributes.ContentState(
+                body: update.body,
+                version: update.version
             )
-            self.pendingActivityUpdate = nil
-            feedbackMessage = nil
-        } catch {
-            feedbackMessage = "Live may not be up to date."
-        }
 
-        let refreshed = await liveActivityController.activities()
-            .filter { $0.isActive && $0.noteID == pendingActivityUpdate.noteID }
-        pinState = refreshed.isEmpty ? .unpinned : .pinned
-        if refreshed.isEmpty {
-            self.pendingActivityUpdate = nil
+            do {
+                try ActivityPayloadSizer.validate(attributes: attributes, state: state)
+                try await liveActivityController.update(
+                    activityID: activity.activityID,
+                    body: update.body,
+                    version: update.version
+                )
+                if pendingActivityUpdate == update {
+                    pendingActivityUpdate = nil
+                } else {
+                    activityUpdateTask?.cancel()
+                    activityUpdateTask = nil
+                }
+                clearFeedback(ifMatching: "Live may not be up to date.")
+            } catch {
+                if feedbackMessage == nil || feedbackMessage == "Live may not be up to date." {
+                    feedbackMessage = "Live may not be up to date."
+                }
+                return
+            }
+
+            let refreshed = await liveActivityController.activities()
+                .filter { $0.isActive && $0.noteID == update.noteID }
+            pinState = refreshed.isEmpty ? .unpinned : .pinned
+            if refreshed.isEmpty {
+                pendingActivityUpdate = nil
+                return
+            }
         }
     }
 
     func reconcileActivities() async {
         guard let currentNote else { return }
-        feedbackMessage = nil
 
         let active = await liveActivityController.activities()
             .filter(\.isActive)
@@ -386,18 +397,40 @@ final class IslandNotesFeature {
         if refreshed.isEmpty {
             pinState = .unpinned
             hasActivityInconsistency = false
+            clearFeedback(ifMatching: "Live is being reconciled. Try again.")
             return
         }
 
-        if refreshed.count == 1, refreshedCurrent.count == 1 {
+        if refreshed.count == 1,
+           refreshedCurrent.count == 1,
+           let keeper = refreshedCurrent.first {
             pinState = .pinned
             hasActivityInconsistency = false
+            clearFeedback(ifMatching: "Live is being reconciled. Try again.")
+            guard let latestCurrent = self.currentNote,
+                  latestCurrent.id == currentNote.id else { return }
+            let desired = PendingActivityUpdate(
+                noteID: latestCurrent.id,
+                body: latestCurrent.body,
+                version: latestCurrent.contentVersion
+            )
+            if keeper.body != desired.body || keeper.version != desired.version {
+                pendingActivityUpdate = desired
+                await flushPendingActivityUpdate()
+            } else {
+                activityUpdateTask?.cancel()
+                activityUpdateTask = nil
+                pendingActivityUpdate = nil
+                clearFeedback(ifMatching: "Live may not be up to date.")
+            }
             return
         }
 
         pinState = .unpinned
         hasActivityInconsistency = true
-        feedbackMessage = "Live is being reconciled. Try again."
+        if feedbackMessage == nil || feedbackMessage == "Live is being reconciled. Try again." {
+            feedbackMessage = "Live is being reconciled. Try again."
+        }
     }
 
 #if DEBUG
@@ -438,6 +471,12 @@ final class IslandNotesFeature {
 
     private func reportBusyAction() {
         feedbackMessage = WorkbenchActionAvailability.busy.feedbackMessage
+    }
+
+    private func clearFeedback(ifMatching message: String) {
+        if feedbackMessage == message {
+            feedbackMessage = nil
+        }
     }
 
     private func endCurrentActivityBarrier(noteID: UUID) async -> Bool {

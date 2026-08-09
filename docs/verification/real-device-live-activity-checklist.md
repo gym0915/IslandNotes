@@ -15,10 +15,14 @@
 ## 核心 presentation 与入口
 
 - [ ] 首次启动 Live Activity 时的系统提示与拒绝路径符合预期。
-- [ ] compact leading/trailing 只显示便签标记与状态，不泄露正文。
-- [ ] minimal 只显示单色标记，不泄露正文。
-- [ ] expanded 展示最新已保存正文，长文、换行与 Emoji 由系统安全截断且不滚动。
-- [ ] Lock Screen 展示与 expanded 使用同一最新 ContentState 正文。
+- [ ] compact leading 只显示 Lucide 品牌便签标记；compact trailing 保持空白，不显示绿点、状态或正文。
+- [ ] minimal 只显示同一单色品牌便签标记，不泄露正文。
+- [ ] expanded 只显示品牌标记与最新已提交正文；不显示绿点、品牌标题或 “Live” 标签。
+- [ ] expanded 对正文最多展示 3 行；长文、换行、列表与 Emoji 由系统安全截断且不滚动。
+- [ ] Lock Screen 使用 24 pt 圆角、16 pt 内边距、最多 3 行的卡片，并与 expanded 使用同一最新 ContentState 正文。
+- [ ] 仅以精确 `- ` 开头的行显示为圆点列表；`#`、`*`、缩进连字符等 Markdown 风格文本保持字面内容。
+- [ ] 所有可见文案和 VoiceOver label/value/hint 均为英文，图标具有 “Island Notes” 语义。
+- [ ] Widget 跟随系统环境，不读取或覆盖 App 的 Automatic/Light/Dark 外观偏好。
 - [ ] compact、minimal、expanded、Lock Screen 每个入口都返回当前工作台。
 - [ ] 带失效 `noteID` 的旧入口只打开当前工作台并对账，不恢复、交换或重新挂起旧便签。
 
@@ -57,6 +61,6 @@
 ## 通过判据与证据
 
 - [ ] 两种设备宽度上的必测项全部通过，或每个偏差都有复现步骤、系统版本和产品承诺收紧结论。
-- [ ] 附上 compact、minimal、expanded、Lock Screen、最大字体、深色与隐私设置组合截图。
+- [ ] 附上真实设备的 compact、minimal、expanded、Lock Screen、最大字体、深色与隐私设置组合截图。
 - [ ] 附上 8 小时生命周期、强杀、重启、禁用/重开 Live Activities 的时间线记录。
 - [ ] 未把 Preview/Simulator 截图标记成真机证据。

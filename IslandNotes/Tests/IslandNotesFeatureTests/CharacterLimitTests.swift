@@ -1,8 +1,35 @@
+import UIKit
 import XCTest
 @testable import IslandNotes
 
 @MainActor
 final class CharacterLimitTests: XCTestCase {
+    func testMarkedTextEditorReportsCompositionStateUntilUIKitUnmarksText() {
+        var reportedStates: [Bool] = []
+        let editor = MarkedTextEditor(
+            text: "",
+            onChange: { text, _ in text },
+            onMarkedTextChange: { reportedStates.append($0) }
+        )
+        let coordinator = editor.makeCoordinator()
+        let textView = UITextView()
+
+        textView.setMarkedText(
+            "preedit",
+            selectedRange: NSRange(location: 7, length: 0)
+        )
+        coordinator.textViewDidChange(textView)
+
+        XCTAssertNotNil(textView.markedTextRange)
+        XCTAssertEqual(reportedStates, [true])
+
+        textView.unmarkText()
+        coordinator.textViewDidChange(textView)
+
+        XCTAssertNil(textView.markedTextRange)
+        XCTAssertEqual(reportedStates, [true, false])
+    }
+
     func test239Accepts240And241TruncatesAtCharacterBoundary() {
         let first239 = String(repeating: "字", count: 239)
 

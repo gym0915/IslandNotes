@@ -1,9 +1,20 @@
 import SwiftUI
 
+#if DEBUG
+private let initialUITestingMarkedTextActive = ProcessInfo.processInfo.arguments.contains(
+    "--uitesting-active-marked-text"
+)
+#else
+private let initialUITestingMarkedTextActive = false
+#endif
+
 struct WorkbenchView: View {
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @Bindable var feature: IslandNotesFeature
     @State private var isMoreMenuPresented = false
+    @State private var editorComposition = WorkbenchEditorCompositionState(
+        hasMarkedText: initialUITestingMarkedTextActive
+    )
     var reduceMotionOverride: Bool? = nil
     let openNoteLibrary: () -> Void
     let openSettings: () -> Void
@@ -92,6 +103,9 @@ struct WorkbenchView: View {
         )
         .background(IslandDesign.Colors.canvas)
         .navigationBarHidden(true)
+        .onChange(of: feature.isEditing) { _, isEditing in
+            editorComposition.editingDidChange(isEditing)
+        }
     }
 
     private var deleteConfirmationMessage: String? {
@@ -172,14 +186,20 @@ struct WorkbenchView: View {
                                 .allowsHitTesting(false)
                                 .accessibilityHidden(true)
                         }
-                        MarkedTextEditor(text: feature.editingText) {
-                            proposedText,
-                            markedTextActive in
-                            feature.stageEditorText(
-                                proposedText: proposedText,
-                                markedTextActive: markedTextActive
-                            ).acceptedText
-                        }
+                        MarkedTextEditor(
+                            text: feature.editingText,
+                            onChange: { proposedText, markedTextActive in
+                                feature.stageEditorText(
+                                    proposedText: proposedText,
+                                    markedTextActive: markedTextActive
+                                ).acceptedText
+                            },
+                            onMarkedTextChange: { markedTextActive in
+                                editorComposition.textDidChange(
+                                    markedTextActive: markedTextActive
+                                )
+                            }
+                        )
                         .frame(minHeight: IslandDesign.Sizing.editorMinimumHeight)
                     }
                 } else {
@@ -205,12 +225,24 @@ struct WorkbenchView: View {
                 HStack(spacing: IslandDesign.Spacing.x2) {
                     if feature.isEditing {
                         Button("Done") {
+                            guard editorComposition.canSubmit(
+                                featureCanComplete: feature.canCompleteEditing
+                            ) else { return }
                             try? feature.completeEditing()
                         }
                         .buttonStyle(IslandButtonStyle(kind: .primary))
-                        .disabled(!feature.canCompleteEditing)
+                        .disabled(
+                            !editorComposition.canSubmit(
+                                featureCanComplete: feature.canCompleteEditing
+                            )
+                        )
                         .accessibilityIdentifier("done-editing")
-                        .accessibilityHint(feature.noteMutationAvailability.accessibilityHint)
+                        .accessibilityValue(
+                            editorComposition.hasMarkedText
+                                ? "Waiting for text composition"
+                                : ""
+                        )
+                        .accessibilityHint(doneAccessibilityHint)
                     }
 
                     Spacer(minLength: IslandDesign.Spacing.x2)
@@ -225,5 +257,30 @@ struct WorkbenchView: View {
             }
             .padding(IslandDesign.Spacing.x6)
         }
+    }
+
+    private var doneAccessibilityHint: String {
+        if editorComposition.hasMarkedText {
+            return "Finish composing text before saving"
+        }
+        return feature.noteMutationAvailability.accessibilityHint
+    }
+}
+
+struct WorkbenchEditorCompositionState: Equatable {
+    private(set) var hasMarkedText: Bool = false
+
+    mutating func textDidChange(markedTextActive: Bool) {
+        hasMarkedText = markedTextActive
+    }
+
+    mutating func editingDidChange(_ isEditing: Bool) {
+        if !isEditing {
+            hasMarkedText = false
+        }
+    }
+
+    func canSubmit(featureCanComplete: Bool) -> Bool {
+        featureCanComplete && !hasMarkedText
     }
 }

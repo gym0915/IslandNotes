@@ -2,23 +2,27 @@ import Foundation
 
 struct LibraryTimestampFormatter {
     private var calendar: Calendar
-    private let locale: Locale
-    private let timeZone: TimeZone
     private let now: () -> Date
+    private let formatters: LibraryTimestampFormatters
 
     init(
         calendar: Calendar = .current,
         locale: Locale = Locale(identifier: "en_US_POSIX"),
         timeZone: TimeZone = .current,
-        now: @escaping () -> Date = Date.init
+        now: @escaping () -> Date = Date.init,
+        formatterFactory: () -> DateFormatter = DateFormatter.init
     ) {
         var configuredCalendar = calendar
         configuredCalendar.locale = locale
         configuredCalendar.timeZone = timeZone
         self.calendar = configuredCalendar
-        self.locale = locale
-        self.timeZone = timeZone
         self.now = now
+        formatters = LibraryTimestampFormatters(
+            calendar: configuredCalendar,
+            locale: locale,
+            timeZone: timeZone,
+            factory: formatterFactory
+        )
     }
 
     func string(from date: Date) -> String {
@@ -38,22 +42,72 @@ struct LibraryTimestampFormatter {
         case 1:
             dateLabel = "Yesterday"
         case 2...6:
-            dateLabel = formatted(date, pattern: "EEEE")
+            dateLabel = formatters.weekday.string(from: date)
         default:
             let includesYear = calendar.component(.year, from: date)
                 != calendar.component(.year, from: reference)
-            dateLabel = formatted(date, pattern: includesYear ? "MMM d, yyyy" : "MMM d")
+            dateLabel = (includesYear ? formatters.dateWithYear : formatters.date)
+                .string(from: date)
         }
 
-        return "\(dateLabel), \(formatted(date, pattern: "h:mm a"))"
+        return "\(dateLabel), \(formatters.time.string(from: date))"
+    }
+}
+
+private final class LibraryTimestampFormatters {
+    let weekday: DateFormatter
+    let date: DateFormatter
+    let dateWithYear: DateFormatter
+    let time: DateFormatter
+
+    init(
+        calendar: Calendar,
+        locale: Locale,
+        timeZone: TimeZone,
+        factory: () -> DateFormatter
+    ) {
+        weekday = Self.make(
+            pattern: "EEEE",
+            calendar: calendar,
+            locale: locale,
+            timeZone: timeZone,
+            factory: factory
+        )
+        date = Self.make(
+            pattern: "MMM d",
+            calendar: calendar,
+            locale: locale,
+            timeZone: timeZone,
+            factory: factory
+        )
+        dateWithYear = Self.make(
+            pattern: "MMM d, yyyy",
+            calendar: calendar,
+            locale: locale,
+            timeZone: timeZone,
+            factory: factory
+        )
+        time = Self.make(
+            pattern: "h:mm a",
+            calendar: calendar,
+            locale: locale,
+            timeZone: timeZone,
+            factory: factory
+        )
     }
 
-    private func formatted(_ date: Date, pattern: String) -> String {
-        let formatter = DateFormatter()
+    private static func make(
+        pattern: String,
+        calendar: Calendar,
+        locale: Locale,
+        timeZone: TimeZone,
+        factory: () -> DateFormatter
+    ) -> DateFormatter {
+        let formatter = factory()
         formatter.calendar = calendar
         formatter.locale = locale
         formatter.timeZone = timeZone
         formatter.dateFormat = pattern
-        return formatter.string(from: date)
+        return formatter
     }
 }

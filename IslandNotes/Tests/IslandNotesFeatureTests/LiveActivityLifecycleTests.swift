@@ -420,6 +420,28 @@ final class LiveActivityLifecycleTests: XCTestCase {
         XCTAssertEqual(harness.feature.currentNote?.body, "最终值")
     }
 
+    func testCommitDuringAwaitedLiveUpdateFlushesTheNewestSavedValue() async throws {
+        let harness = try FeatureHarness.make()
+        try await harness.feature.bootstrap()
+        try harness.commitCurrentNote("起点")
+        await harness.feature.startPinning()
+        harness.controller.pauseUpdates()
+
+        try harness.commitCurrentNote("更新 A")
+        let firstFlush = Task { await harness.feature.flushPendingActivityUpdate() }
+        await waitUntil { harness.controller.hasPausedUpdate }
+
+        try harness.commitCurrentNote("更新 B")
+        let newestVersion = try XCTUnwrap(harness.feature.currentNote?.contentVersion)
+        harness.controller.resumeUpdates()
+        await firstFlush.value
+        await harness.feature.flushPendingActivityUpdate()
+
+        XCTAssertEqual(harness.controller.activeActivities.first?.body, "更新 B")
+        XCTAssertEqual(harness.controller.activeActivities.first?.version, newestVersion)
+        XCTAssertEqual(harness.feature.currentNote?.body, "更新 B")
+    }
+
     func testActivityUpdateFailureKeepsLatestLocalContentAndCanRetry() async throws {
         let harness = try FeatureHarness.make()
         try await harness.feature.bootstrap()

@@ -4,6 +4,17 @@ import UIKit
 struct MarkedTextEditor: UIViewRepresentable {
     let text: String
     let onChange: (String, Bool) -> String
+    let onMarkedTextChange: (Bool) -> Void
+
+    init(
+        text: String,
+        onChange: @escaping (String, Bool) -> String,
+        onMarkedTextChange: @escaping (Bool) -> Void = { _ in }
+    ) {
+        self.text = text
+        self.onChange = onChange
+        self.onMarkedTextChange = onMarkedTextChange
+    }
 
     func makeCoordinator() -> Coordinator {
         Coordinator(parent: self)
@@ -56,6 +67,7 @@ struct MarkedTextEditor: UIViewRepresentable {
 
         func textViewDidChange(_ textView: UITextView) {
             let markedTextActive = textView.markedTextRange != nil
+            parent.onMarkedTextChange(markedTextActive)
             if markedTextActive {
                 if compositionBaseline == nil {
                     compositionBaseline = committedText

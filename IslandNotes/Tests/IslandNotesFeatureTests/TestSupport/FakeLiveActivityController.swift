@@ -18,6 +18,7 @@ final class FakeLiveActivityController: LiveActivityControlling {
     private(set) var activeActivities: [ActivitySession] = []
     private(set) var activitiesCallCount = 0
     private(set) var requestCallCount = 0
+    private(set) var updateCallCount = 0
     private(set) var endCallCount = 0
     var requestFailure: Error?
     var updateFailure: Error?
@@ -26,6 +27,8 @@ final class FakeLiveActivityController: LiveActivityControlling {
     private var activitiesContinuation: CheckedContinuation<Void, Never>?
     private var pausesRequests = false
     private var requestContinuations: [CheckedContinuation<Void, Never>] = []
+    private var pausesUpdates = false
+    private var updateContinuations: [CheckedContinuation<Void, Never>] = []
     private var pausesEnds = false
     private var endContinuations: [CheckedContinuation<Void, Never>] = []
 
@@ -35,6 +38,10 @@ final class FakeLiveActivityController: LiveActivityControlling {
 
     var hasPausedRequest: Bool {
         !requestContinuations.isEmpty
+    }
+
+    var hasPausedUpdate: Bool {
+        !updateContinuations.isEmpty
     }
 
     func seedActivities(_ activities: [ActivitySession]) {
@@ -74,6 +81,12 @@ final class FakeLiveActivityController: LiveActivityControlling {
     }
 
     func update(activityID: String, body: String, version: Int) async throws {
+        updateCallCount += 1
+        if pausesUpdates {
+            await withCheckedContinuation { continuation in
+                updateContinuations.append(continuation)
+            }
+        }
         if let updateFailure {
             throw updateFailure
         }
@@ -126,6 +139,17 @@ final class FakeLiveActivityController: LiveActivityControlling {
         pausesRequests = false
         let continuations = requestContinuations
         requestContinuations.removeAll()
+        continuations.forEach { $0.resume() }
+    }
+
+    func pauseUpdates() {
+        pausesUpdates = true
+    }
+
+    func resumeUpdates() {
+        pausesUpdates = false
+        let continuations = updateContinuations
+        updateContinuations.removeAll()
         continuations.forEach { $0.resume() }
     }
 

@@ -69,6 +69,27 @@ xcrun xcresulttool export attachments \
 Result: **1 test passed, 0 failures, 59.830 seconds**. The result bundle reports
 the expected iPhone 16 Pro / iOS 26.2 device and sixteen retained attachments.
 
+## Final automated verification
+
+Verification was rerun from the completed interface-rebuild HEAD on the same
+iPhone 16 Pro / iOS 26.2 simulator:
+
+- Focused accessibility gate: **8 passed, 0 failed, 0 skipped**. It covered
+  default and maximum Dynamic Type, 44-point targets, English accessibility
+  labels/values/hints, keyboard reachability, Library replacement, delete
+  confirmation, and the Reduce Motion design-system contract.
+- Complete serial scheme: **158 test cases passed** — 134 Feature and 24 UI —
+  with 0 failures and 0 skips. This final run includes the Live-update ordering,
+  foreground reconciliation, feedback ownership, and active IME composition
+  regression coverage added during the closing correctness review.
+- Generic iOS Simulator Debug build: exit code 0.
+- Generic iOS Simulator Release build: exit code 0.
+- `git diff --check`: clean.
+
+The machine has iOS 18.3, 18.4, 18.5, 26.0, 26.1, and 26.2 runtimes. No iOS 17
+runtime is installed, so the minimum-runtime launch exercise remains explicitly
+unclaimed rather than being inferred from a newer runtime.
+
 ## Scope and limitations
 
 - `06-light-workbench-live.png` proves the app-side Live transition using the

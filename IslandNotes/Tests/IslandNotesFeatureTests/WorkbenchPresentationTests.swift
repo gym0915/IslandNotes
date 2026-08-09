@@ -4,6 +4,59 @@ import XCTest
 
 @MainActor
 final class WorkbenchPresentationTests: XCTestCase {
+    func testMarkedTextBlocksDoneAndRemovingEditorClearsCompositionState() {
+        var composition = WorkbenchEditorCompositionState(hasMarkedText: true)
+
+        XCTAssertFalse(composition.canSubmit(featureCanComplete: true))
+
+        composition.textDidChange(markedTextActive: false)
+
+        XCTAssertTrue(composition.canSubmit(featureCanComplete: true))
+
+        composition.textDidChange(markedTextActive: true)
+
+        composition.editingDidChange(false)
+
+        XCTAssertFalse(composition.hasMarkedText)
+        XCTAssertTrue(composition.canSubmit(featureCanComplete: true))
+    }
+
+    func testMarkedDraftRemainsInMemoryUntilCompositionEndsAndDoneBecomesAvailable() async throws {
+        let harness = try FeatureHarness.make()
+        try await harness.feature.bootstrap()
+        harness.feature.beginEditing()
+        var composition = WorkbenchEditorCompositionState()
+
+        composition.textDidChange(markedTextActive: true)
+        harness.feature.stageEditorText(
+            proposedText: "unfinished preedit",
+            markedTextActive: true
+        )
+
+        XCTAssertFalse(
+            composition.canSubmit(
+                featureCanComplete: harness.feature.canCompleteEditing
+            )
+        )
+        XCTAssertEqual(harness.feature.editingText, "unfinished preedit")
+        XCTAssertEqual(harness.feature.currentNote?.body, "")
+        XCTAssertTrue(harness.feature.isEditing)
+
+        composition.textDidChange(markedTextActive: false)
+        harness.feature.stageEditorText(
+            proposedText: "完成组合 👨‍👩‍👧‍👦",
+            markedTextActive: false
+        )
+
+        XCTAssertTrue(
+            composition.canSubmit(
+                featureCanComplete: harness.feature.canCompleteEditing
+            )
+        )
+        try harness.feature.completeEditing()
+        XCTAssertEqual(harness.feature.currentNote?.body, "完成组合 👨‍👩‍👧‍👦")
+    }
+
     func testActionDockAvailabilityDistinguishesBlankContentFromValidBusyNote() async throws {
         let harness = try FeatureHarness.make()
         try await harness.feature.bootstrap()

@@ -38,7 +38,7 @@ struct NoteLibraryView: View {
                             .padding(.horizontal, IslandDesign.Spacing.x1)
 
                         IslandSurface {
-                            VStack(spacing: 0) {
+                            LazyVStack(spacing: 0) {
                                 ForEach(Array(feature.library.enumerated()), id: \.element.id) { index, note in
                                     LibraryNoteCard(
                                         note: note,

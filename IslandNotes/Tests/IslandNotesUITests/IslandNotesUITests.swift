@@ -176,6 +176,26 @@ final class IslandNotesUITests: XCTestCase {
         XCTAssertFalse(app.staticTexts["Write what matters most…"].exists)
     }
 
+    func testDoneRemainsDisabledWhileTheEditorHasMarkedText() {
+        let app = XCUIApplication()
+        app.launchArguments = [
+            "--uitesting-reset",
+            "--uitesting-fake-live-activity",
+            "--uitesting-active-marked-text",
+        ]
+        app.launch()
+
+        let editor = beginWorkbenchEditing(in: app)
+        let done = app.buttons["done-editing"]
+
+        XCTAssertTrue(done.waitForExistence(timeout: 2))
+        XCTAssertFalse(done.isEnabled)
+        XCTAssertEqual(done.value as? String, "Waiting for text composition")
+        done.tap()
+        XCTAssertTrue(editor.exists)
+        XCTAssertFalse(app.buttons["rendered-note"].exists)
+    }
+
     func testEditorProgressDoneAndActionsRemainHittableAtMaximumDynamicType() {
         let app = XCUIApplication()
         app.launchArguments = [

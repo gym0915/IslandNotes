@@ -67,6 +67,29 @@ final class LibraryTimestampFormatterTests: XCTestCase {
         )
     }
 
+    func testFormattersAreBuiltOnceAndReusedAcrossLibraryRows() throws {
+        var constructionCount = 0
+        var calendar = Calendar(identifier: .gregorian)
+        calendar.timeZone = timeZone
+
+        let formatter = LibraryTimestampFormatter(
+            calendar: calendar,
+            locale: Locale(identifier: "en_US_POSIX"),
+            timeZone: timeZone,
+            now: { try! self.date(2026, 8, 5, 12, 0) },
+            formatterFactory: {
+                constructionCount += 1
+                return DateFormatter()
+            }
+        )
+
+        XCTAssertEqual(constructionCount, 4)
+        _ = formatter.string(from: try date(2026, 8, 5, 9, 41))
+        _ = formatter.string(from: try date(2026, 8, 4, 9, 41))
+        _ = formatter.string(from: try date(2025, 12, 31, 23, 59))
+        XCTAssertEqual(constructionCount, 4)
+    }
+
     private func makeFormatter(now: Date) -> LibraryTimestampFormatter {
         var calendar = Calendar(identifier: .gregorian)
         calendar.locale = Locale(identifier: "en_US_POSIX")

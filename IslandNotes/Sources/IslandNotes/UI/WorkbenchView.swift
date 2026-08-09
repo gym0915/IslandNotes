@@ -14,7 +14,8 @@ struct WorkbenchView: View {
                 VStack(alignment: .leading, spacing: IslandDesign.Spacing.x6) {
                     header
                     noteSurface
-                    if let feedback = feature.feedbackMessage {
+                    if let feedback = feature.feedbackMessage,
+                       feature.deleteConfirmation == nil {
                         HintMessageView(message: feedback)
                     }
                     ActionDock(feature: feature)
@@ -24,6 +25,8 @@ struct WorkbenchView: View {
                 .padding(.bottom, IslandDesign.Spacing.x8)
             }
             .scrollDismissesKeyboard(.interactively)
+            .allowsHitTesting(feature.deleteConfirmation == nil)
+            .accessibilityHidden(feature.deleteConfirmation != nil)
             .accessibilityIdentifier("workbench-root")
 
             if isMoreMenuPresented {
@@ -55,27 +58,50 @@ struct WorkbenchView: View {
                 )
                 .zIndex(1)
             }
+
+            if let deleteConfirmationMessage {
+                ZStack(alignment: .bottom) {
+                    IslandDesign.Colors.scrim
+                        .contentShape(Rectangle())
+                        .ignoresSafeArea()
+                        .onTapGesture {}
+                        .accessibilityHidden(true)
+
+                    DeleteConfirmationView(
+                        message: deleteConfirmationMessage,
+                        feedback: feature.feedbackMessage,
+                        isBusy: !feature.noteMutationAvailability.isEnabled,
+                        cancel: feature.cancelDelete
+                    ) {
+                        Task { try? await feature.confirmDeleteCurrentNote() }
+                    }
+                    .padding(.horizontal, IslandDesign.Spacing.x4)
+                    .padding(.bottom, IslandDesign.Spacing.x4)
+                }
+                .transition(deleteConfirmationTransition)
+                .zIndex(2)
+            }
         }
         .animation(
             IslandDesign.Motion.menu(reduceMotion: reduceMotionOverride ?? reduceMotion),
             value: isMoreMenuPresented
         )
+        .animation(
+            IslandDesign.Motion.animation(reduceMotion: reduceMotionOverride ?? reduceMotion),
+            value: feature.deleteConfirmation != nil
+        )
         .background(IslandDesign.Colors.canvas)
         .navigationBarHidden(true)
-        .alert(
-            "Delete this note?",
-            isPresented: Binding(
-                get: { feature.deleteConfirmation != nil },
-                set: { if !$0 { feature.cancelDelete() } }
-            )
-        ) {
-            Button("Cancel", role: .cancel) { feature.cancelDelete() }
-            Button("Delete Note", role: .destructive) {
-                Task { try? await feature.confirmDeleteCurrentNote() }
-            }
-        } message: {
-            Text("This cannot be undone.")
-        }
+    }
+
+    private var deleteConfirmationMessage: String? {
+        guard case let .pending(message)? = feature.deleteConfirmation else { return nil }
+        return message
+    }
+
+    private var deleteConfirmationTransition: AnyTransition {
+        guard !(reduceMotionOverride ?? reduceMotion) else { return .opacity }
+        return .move(edge: .bottom).combined(with: .opacity)
     }
 
     private var header: some View {

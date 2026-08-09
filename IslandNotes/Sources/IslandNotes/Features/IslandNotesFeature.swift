@@ -245,7 +245,10 @@ final class IslandNotesFeature {
 
     func requestDelete() {
         guard canDelete else { return }
-        deleteConfirmation = .pending(message: "This cannot be undone.")
+        feedbackMessage = nil
+        deleteConfirmation = .pending(
+            message: "This note will be permanently deleted. This action cannot be undone."
+        )
     }
 
     func cancelDelete() {

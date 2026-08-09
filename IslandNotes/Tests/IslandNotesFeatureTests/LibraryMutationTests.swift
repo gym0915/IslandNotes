@@ -106,7 +106,14 @@ final class LibraryMutationTests: XCTestCase {
 
         harness.feature.requestDelete()
 
-        XCTAssertNotNil(harness.feature.deleteConfirmation)
+        let confirmation = try XCTUnwrap(harness.feature.deleteConfirmation)
+        guard case let .pending(message) = confirmation else {
+            return XCTFail("Expected a pending delete confirmation")
+        }
+        XCTAssertEqual(
+            message,
+            "This note will be permanently deleted. This action cannot be undone."
+        )
         XCTAssertEqual(harness.feature.currentNote?.id, originalID)
         XCTAssertEqual(try harness.notes().count, 1)
 

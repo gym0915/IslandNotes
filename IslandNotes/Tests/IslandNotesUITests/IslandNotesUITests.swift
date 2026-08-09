@@ -218,7 +218,7 @@ final class IslandNotesUITests: XCTestCase {
         }
     }
 
-    func testEditingEnablesActionsAndDeleteShowsIrreversibleConfirmation() {
+    func testDeleteConfirmationCancelsLosslesslyAndConfirmedDeleteReturnsBlankWorkbench() {
         let app = launchCleanApp()
         let editor = beginWorkbenchEditing(in: app)
 
@@ -237,10 +237,63 @@ final class IslandNotesUITests: XCTestCase {
 
         delete.tap()
 
-        XCTAssertTrue(app.alerts["Delete this note?"].waitForExistence(timeout: 2))
-        XCTAssertTrue(app.staticTexts["This cannot be undone."].exists)
-        XCTAssertTrue(app.buttons["Cancel"].exists)
-        XCTAssertTrue(app.buttons["Delete Note"].exists)
+        let confirmation = app.otherElements["delete-confirmation"]
+        XCTAssertTrue(confirmation.waitForExistence(timeout: 2))
+        XCTAssertFalse(app.alerts["Delete this note?"].exists)
+        XCTAssertTrue(app.staticTexts["Delete this note?"].exists)
+        XCTAssertTrue(
+            app.staticTexts[
+                "This note will be permanently deleted. This action cannot be undone."
+            ].exists
+        )
+        XCTAssertEqual(confirmation.buttons.count, 2)
+        XCTAssertEqual(confirmation.buttons.element(boundBy: 0).label, "Delete Note")
+        XCTAssertEqual(confirmation.buttons.element(boundBy: 1).label, "Cancel")
+
+        app.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.2)).tap()
+        XCTAssertTrue(confirmation.exists)
+
+        app.buttons["cancel-delete"].tap()
+        XCTAssertFalse(confirmation.exists)
+        XCTAssertTrue(app.buttons["rendered-note"].label.contains("A note to keep"))
+
+        delete.tap()
+        XCTAssertTrue(confirmation.waitForExistence(timeout: 2))
+        app.buttons["confirm-delete-note"].tap()
+
+        XCTAssertTrue(app.buttons["rendered-note"].waitForExistence(timeout: 3))
+        XCTAssertEqual(app.buttons["rendered-note"].label, "Write what matters most…")
+        XCTAssertFalse(delete.isEnabled)
+    }
+
+    func testDeleteSaveFailureKeepsConfirmationAndCommittedContentWithRecoverableHint() {
+        let app = XCUIApplication()
+        app.launchArguments = [
+            "--uitesting-reset",
+            "--uitesting-save-failure",
+            "--uitesting-fake-live-activity",
+            "--uitesting-appearance-suite",
+            "IslandNotesUITests.delete-failure",
+            "--uitesting-reset-appearance",
+        ]
+        app.launch()
+
+        let rendered = app.buttons["rendered-note"]
+        XCTAssertTrue(rendered.waitForExistence(timeout: 5))
+        XCTAssertTrue(rendered.label.contains("Last committed source"))
+        app.buttons["delete-current-note"].tap()
+        let confirmation = app.otherElements["delete-confirmation"]
+        XCTAssertTrue(confirmation.waitForExistence(timeout: 2))
+
+        app.buttons["confirm-delete-note"].tap()
+
+        XCTAssertTrue(confirmation.waitForExistence(timeout: 2))
+        let feedback = app.descendants(matching: .any)["transient-feedback"]
+        XCTAssertTrue(feedback.waitForExistence(timeout: 2))
+        XCTAssertEqual(feedback.value as? String, "Couldn't delete the note.")
+        app.buttons["cancel-delete"].tap()
+        XCTAssertTrue(rendered.waitForExistence(timeout: 2))
+        XCTAssertTrue(rendered.label.contains("Last committed source"))
     }
 
     func testDeterministicUITestLiveTransitionUpdatesHeaderAndRemainsStoppable() {

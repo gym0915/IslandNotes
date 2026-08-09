@@ -134,7 +134,11 @@ private enum PreviewFixtures {
             pinState: pinState,
             editingDraft: editingDraft,
             isCharacterCountVisible: showsCharacterDetails,
-            deleteConfirmation: deleting ? .pending(message: "This cannot be undone.") : nil,
+            deleteConfirmation: deleting
+                ? .pending(
+                    message: "This note will be permanently deleted. This action cannot be undone."
+                )
+                : nil,
             feedbackMessage: feedback
         )
         return (feature, container)

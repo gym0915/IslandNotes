@@ -243,14 +243,54 @@ final class IslandNotesUITests: XCTestCase {
         XCTAssertTrue(app.buttons["open-more-menu"].waitForExistence(timeout: 3))
         app.buttons["open-more-menu"].tap()
         app.buttons["open-note-library"].tap()
-        let archivedNote = app.buttons["Note: Old note from library"]
+        let archivedNote = app.staticTexts["Old note from library"]
         XCTAssertTrue(archivedNote.waitForExistence(timeout: 3))
+        XCTAssertTrue(app.staticTexts["RECENT"].exists)
+        let replace = app.buttons["Replace current note"]
+        XCTAssertTrue(replace.exists)
+        XCTAssertGreaterThanOrEqual(replace.frame.width, 44)
+        XCTAssertGreaterThanOrEqual(replace.frame.height, 44)
 
         archivedNote.tap()
+        XCTAssertTrue(app.otherElements["app-sheet"].exists)
 
+        replace.tap()
         XCTAssertTrue(app.buttons["rendered-note"].waitForExistence(timeout: 3))
         XCTAssertFalse(editor.exists)
         XCTAssertTrue(app.buttons["rendered-note"].label.contains("Old note from library"))
+    }
+
+    func testLibraryReplacementArchivesCommittedOutgoingNoteAndDiscardsLivingDraft() {
+        let app = launchCleanApp()
+
+        let candidateEditor = beginWorkbenchEditing(in: app)
+        candidateEditor.typeText("Library candidate")
+        app.buttons["done-editing"].tap()
+        app.buttons["archive-current-note"].tap()
+
+        let outgoingEditor = beginWorkbenchEditing(in: app)
+        outgoingEditor.typeText("Outgoing committed")
+        app.buttons["done-editing"].tap()
+
+        app.buttons["rendered-note"].tap()
+        let livingDraft = app.textViews["current-note-editor"]
+        XCTAssertTrue(livingDraft.waitForExistence(timeout: 2))
+        livingDraft.typeText(" unsaved")
+
+        app.buttons["open-more-menu"].tap()
+        app.buttons["open-note-library"].tap()
+        XCTAssertTrue(app.staticTexts["Library candidate"].waitForExistence(timeout: 3))
+        app.buttons["Replace current note"].tap()
+
+        let rendered = app.buttons["rendered-note"]
+        XCTAssertTrue(rendered.waitForExistence(timeout: 3))
+        XCTAssertTrue(rendered.label.contains("Library candidate"))
+        XCTAssertFalse(livingDraft.exists)
+
+        app.buttons["open-more-menu"].tap()
+        app.buttons["open-note-library"].tap()
+        XCTAssertTrue(app.staticTexts["Outgoing committed"].waitForExistence(timeout: 3))
+        XCTAssertFalse(app.staticTexts["Outgoing committed unsaved"].exists)
     }
 
     func testDraftSurvivesOpeningAndClosingNoteLibrary() {

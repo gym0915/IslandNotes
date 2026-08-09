@@ -3,6 +3,15 @@ import SwiftUI
 struct NoteLibraryView: View {
     @Environment(\.dismiss) private var dismiss
     @Bindable var feature: IslandNotesFeature
+    private let timestampFormatter: LibraryTimestampFormatter
+
+    init(
+        feature: IslandNotesFeature,
+        timestampFormatter: LibraryTimestampFormatter = LibraryTimestampFormatter()
+    ) {
+        self.feature = feature
+        self.timestampFormatter = timestampFormatter
+    }
 
     var body: some View {
         Group {
@@ -20,40 +29,54 @@ struct NoteLibraryView: View {
                 .padding(IslandDesign.Spacing.x8)
                 .accessibilityIdentifier("empty-library")
             } else {
-                List(feature.library) { note in
-                    Button {
-                        Task {
-                            try? await feature.selectLibraryNote(id: note.id)
-                            if feature.currentNote?.id == note.id { dismiss() }
-                        }
-                    } label: {
-                        VStack(alignment: .leading, spacing: IslandDesign.Spacing.x2) {
-                            Text(note.body)
-                                .font(IslandDesign.Typography.body)
-                                .foregroundStyle(IslandDesign.Colors.primaryText)
-                                .multilineTextAlignment(.leading)
-                                .lineLimit(3)
-                            if let archivedAt = note.archivedAt {
-                                Text(archivedAt, format: .dateTime.month().day().hour().minute())
-                                    .font(IslandDesign.Typography.caption)
-                                    .foregroundStyle(IslandDesign.Colors.secondaryText)
+                ScrollView {
+                    VStack(alignment: .leading, spacing: IslandDesign.Spacing.x2) {
+                        Text("Recent")
+                            .font(IslandDesign.Typography.caption)
+                            .foregroundStyle(IslandDesign.Colors.secondaryText)
+                            .textCase(.uppercase)
+                            .padding(.horizontal, IslandDesign.Spacing.x1)
+
+                        IslandSurface {
+                            VStack(spacing: 0) {
+                                ForEach(Array(feature.library.enumerated()), id: \.element.id) { index, note in
+                                    LibraryNoteCard(
+                                        note: note,
+                                        timestamp: timestampFormatter.string(
+                                            from: note.archivedAt ?? note.modifiedAt
+                                        ),
+                                        replacementEnabled: feature.canSelectLibraryNote,
+                                        replacementHint: replacementHint
+                                    ) {
+                                        replaceCurrentNote(with: note.id)
+                                    }
+
+                                    if index < feature.library.count - 1 {
+                                        Divider()
+                                            .overlay(IslandDesign.Colors.separator)
+                                    }
+                                }
                             }
                         }
-                        .frame(maxWidth: .infinity, alignment: .leading)
-                        .padding(.vertical, IslandDesign.Spacing.x2)
                     }
-                    .buttonStyle(.plain)
-                    .disabled(!feature.canSelectLibraryNote)
-                    .accessibilityIdentifier("library-note-\(note.id.uuidString)")
-                    .accessibilityLabel("Note: \(note.body)")
-                    .accessibilityHint(
-                        feature.canSelectLibraryNote
-                            ? "Replaces the current note"
-                            : feature.noteMutationAvailability.accessibilityHint
-                    )
+                    .padding(.horizontal, IslandDesign.Spacing.x4)
+                    .padding(.top, IslandDesign.Spacing.x2)
+                    .padding(.bottom, IslandDesign.Spacing.x8)
                 }
-                .listStyle(.insetGrouped)
             }
+        }
+    }
+
+    private var replacementHint: String {
+        feature.canSelectLibraryNote
+            ? "Replaces the current note"
+            : feature.noteMutationAvailability.accessibilityHint
+    }
+
+    private func replaceCurrentNote(with id: UUID) {
+        Task {
+            try? await feature.selectLibraryNote(id: id)
+            if feature.currentNote?.id == id { dismiss() }
         }
     }
 }

@@ -10,65 +10,134 @@ private let initialUITestingMarkedTextActive = false
 
 struct WorkbenchView: View {
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
+
     @Bindable var feature: IslandNotesFeature
     @State private var isMoreMenuPresented = false
+    @State private var liveTransition: LiveActionTransition?
     @State private var editorComposition = WorkbenchEditorCompositionState(
         hasMarkedText: initialUITestingMarkedTextActive
     )
+
     var reduceMotionOverride: Bool? = nil
     let openNoteLibrary: () -> Void
     let openSettings: () -> Void
 
+    private var deleteConfirmationMessage: String? {
+        guard case let .pending(message)? = feature.deleteConfirmation else { return nil }
+        return message
+    }
+
+    private var dockModel: WorkbenchActionDockModel {
+        WorkbenchActionDockModel.make(
+            contentAvailability: feature.contentActionAvailability,
+            liveAvailability: feature.liveActionAvailability,
+            pinState: feature.pinState,
+            transition: liveTransition
+        )
+    }
+
+    private var canCommitEditing: Bool {
+        editorComposition.canSubmit(featureCanComplete: feature.canCompleteEditing)
+    }
+
+    private var doneAccessibilityHint: String {
+        if editorComposition.hasMarkedText {
+            return "Finish composing text before saving"
+        }
+        return feature.noteMutationAvailability.accessibilityHint
+    }
+
+    private var deleteConfirmationTransition: AnyTransition {
+        guard !(reduceMotionOverride ?? reduceMotion) else { return .opacity }
+        return .move(edge: .bottom).combined(with: .opacity)
+    }
+
     var body: some View {
-        ZStack(alignment: .topTrailing) {
-            ScrollView {
-                VStack(alignment: .leading, spacing: IslandDesign.Spacing.x6) {
-                    header
-                    noteSurface
-                    if let feedback = feature.feedbackMessage,
-                       feature.deleteConfirmation == nil {
-                        HintMessageView(message: feedback)
-                    }
-                    ActionDock(feature: feature)
+        ZStack {
+            ZStack {
+                WorkbenchScaffold(isEditing: feature.isEditing) {
+                    WorkbenchHeader(
+                        isMoreMenuPresented: isMoreMenuPresented,
+                        toggleMoreMenu: toggleMoreMenu
+                    )
+                } noteSurface: {
+                    WorkbenchNoteSurface(
+                        source: feature.currentNote?.body ?? "",
+                        editingText: feature.editingText,
+                        isEditing: feature.isEditing,
+                        canBeginEditing: feature.canBeginEditing,
+                        beginEditingHint: feature.noteMutationAvailability.accessibilityHint,
+                        progress: feature.characterProgress,
+                        isCharacterCountExpanded: feature.isCharacterCountVisible,
+                        didReachCharacterLimit: feature.didReachCharacterLimit,
+                        feedbackIsPresented: feature.feedbackMessage != nil,
+                        beginEditing: feature.beginEditing,
+                        stageEditorText: stageEditorText,
+                        markedTextDidChange: { markedTextActive in
+                            editorComposition.textDidChange(
+                                markedTextActive: markedTextActive
+                            )
+                        },
+                        revealCharacterCount: feature.revealCharacterCount
+                    )
                 }
-                .padding(.horizontal, IslandDesign.Spacing.x6)
-                .padding(.top, IslandDesign.Spacing.x4)
-                .padding(.bottom, IslandDesign.Spacing.x8)
-            }
-            .scrollDismissesKeyboard(.interactively)
-            .allowsHitTesting(feature.deleteConfirmation == nil)
-            .accessibilityHidden(feature.deleteConfirmation != nil)
-            .accessibilityIdentifier("workbench-root")
 
-            if isMoreMenuPresented {
-                Color.clear
-                    .contentShape(Rectangle())
-                    .ignoresSafeArea()
-                    .onTapGesture { dismissMoreMenu() }
-                    .accessibilityHidden(true)
+                if isMoreMenuPresented {
+                    Color.clear
+                        .contentShape(Rectangle())
+                        .ignoresSafeArea()
+                        .onTapGesture(perform: dismissMoreMenu)
+                        .accessibilityHidden(true)
 
-                MoreMenu(
-                    openNoteLibrary: {
-                        dismissMoreMenu()
-                        openNoteLibrary()
-                    },
-                    openSettings: {
-                        dismissMoreMenu()
-                        openSettings()
-                    }
-                )
-                .padding(.top, IslandDesign.Sizing.menuTopOffset)
-                .padding(.trailing, IslandDesign.Spacing.x6)
-                .transition(
-                    .opacity.combined(
-                        with: .scale(
-                            scale: IslandDesign.Motion.menuScale,
-                            anchor: .topTrailing
+                    MoreMenu(
+                        openNoteLibrary: openNoteLibraryFromMenu,
+                        openSettings: openSettingsFromMenu
+                    )
+                    .padding(.top, IslandDesign.Sizing.menuTopOffset)
+                    .padding(.trailing, IslandDesign.Spacing.x6)
+                    .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topTrailing)
+                    .transition(
+                        .opacity.combined(
+                            with: .scale(
+                                scale: IslandDesign.Motion.menuScale,
+                                anchor: .topTrailing
+                            )
                         )
                     )
-                )
-                .zIndex(1)
+                    .zIndex(1)
+                }
+
+                if let feedback = feature.feedbackMessage,
+                   feature.deleteConfirmation == nil {
+                    HintMessageView(message: feedback)
+                        .padding(.horizontal, IslandDesign.Spacing.x4)
+                        .padding(.bottom, IslandDesign.Spacing.x2)
+                        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .bottom)
+                        .zIndex(2)
+                }
             }
+            .safeAreaInset(edge: .bottom, spacing: 0) {
+                if feature.isEditing {
+                    EditingCommitBar(
+                        isEnabled: canCommitEditing,
+                        accessibilityValue: editorComposition.hasMarkedText
+                            ? "Waiting for text composition"
+                            : "",
+                        accessibilityHint: doneAccessibilityHint,
+                        commit: commitEditing
+                    )
+                } else {
+                    WorkbenchActionDock(
+                        model: dockModel,
+                        reduceMotionOverride: reduceMotionOverride,
+                        move: moveCurrentNote,
+                        toggleLive: toggleLive,
+                        delete: feature.requestDelete
+                    )
+                }
+            }
+            .allowsHitTesting(feature.deleteConfirmation == nil)
+            .accessibilityHidden(feature.deleteConfirmation != nil)
 
             if let deleteConfirmationMessage {
                 ZStack(alignment: .bottom) {
@@ -82,15 +151,14 @@ struct WorkbenchView: View {
                         message: deleteConfirmationMessage,
                         feedback: feature.feedbackMessage,
                         isBusy: !feature.noteMutationAvailability.isEnabled,
-                        cancel: feature.cancelDelete
-                    ) {
-                        Task { try? await feature.confirmDeleteCurrentNote() }
-                    }
+                        cancel: feature.cancelDelete,
+                        confirm: confirmDelete
+                    )
                     .padding(.horizontal, IslandDesign.Spacing.x4)
                     .padding(.bottom, IslandDesign.Spacing.x4)
                 }
                 .transition(deleteConfirmationTransition)
-                .zIndex(2)
+                .zIndex(3)
             }
         }
         .animation(
@@ -101,169 +169,63 @@ struct WorkbenchView: View {
             IslandDesign.Motion.animation(reduceMotion: reduceMotionOverride ?? reduceMotion),
             value: feature.deleteConfirmation != nil
         )
-        .background(IslandDesign.Colors.canvas)
+        .background(IslandDesign.Colors.workbenchCanvas.ignoresSafeArea())
         .navigationBarHidden(true)
         .onChange(of: feature.isEditing) { _, isEditing in
             editorComposition.editingDidChange(isEditing)
         }
     }
 
-    private var deleteConfirmationMessage: String? {
-        guard case let .pending(message)? = feature.deleteConfirmation else { return nil }
-        return message
+    private func stageEditorText(_ proposedText: String, _ markedTextActive: Bool) -> String {
+        feature.stageEditorText(
+            proposedText: proposedText,
+            markedTextActive: markedTextActive
+        ).acceptedText
     }
 
-    private var deleteConfirmationTransition: AnyTransition {
-        guard !(reduceMotionOverride ?? reduceMotion) else { return .opacity }
-        return .move(edge: .bottom).combined(with: .opacity)
+    private func commitEditing() {
+        guard canCommitEditing else { return }
+        try? feature.completeEditing()
     }
 
-    private var header: some View {
-        ViewThatFits(in: .horizontal) {
-            HStack(spacing: IslandDesign.Spacing.x2) {
-                Spacer()
-                    .frame(width: IslandDesign.Sizing.minimumTouchTarget)
-                    .accessibilityHidden(true)
-                Spacer(minLength: IslandDesign.Spacing.x2)
-                headerIdentity
-                    .fixedSize(horizontal: true, vertical: false)
-                Spacer(minLength: IslandDesign.Spacing.x2)
-                moreButton
-            }
-
-            HStack {
-                headerIdentity
-                Spacer(minLength: IslandDesign.Spacing.x2)
-                moreButton
-            }
-        }
-        .frame(minHeight: IslandDesign.Sizing.minimumTouchTarget)
+    private func moveCurrentNote() {
+        Task { try? await feature.archiveCurrentNote() }
     }
 
-    private var headerIdentity: some View {
-        VStack(spacing: IslandDesign.Spacing.x1) {
-            Text("Island Notes")
-                .font(IslandDesign.Typography.screenTitle)
-                .foregroundStyle(IslandDesign.Colors.primaryText)
-            HStack(spacing: IslandDesign.Spacing.x2) {
-                AppIconView(icon: .live, size: IslandDesign.Sizing.smallIcon)
-                    .foregroundStyle(
-                        feature.pinState == .pinned
-                            ? IslandDesign.Colors.live
-                            : IslandDesign.Colors.secondaryText
-                    )
-                Text(feature.pinState == .pinned ? "Live" : "Not Live")
-                    .font(IslandDesign.Typography.caption)
-                    .foregroundStyle(IslandDesign.Colors.secondaryText)
+    private func toggleLive() {
+        guard liveTransition == nil else { return }
+        let wasPinned = feature.pinState == .pinned
+        liveTransition = wasPinned ? .stopping : .starting
+        Task {
+            if wasPinned {
+                await feature.cancelPinning()
+            } else {
+                await feature.startPinning()
             }
-            .accessibilityElement(children: .combine)
-            .accessibilityLabel(feature.pinState == .pinned ? "Live" : "Not Live")
+            liveTransition = nil
         }
     }
 
-    private var moreButton: some View {
-        IslandIconButton(icon: .more, label: "More") {
-            isMoreMenuPresented.toggle()
-        }
-        .accessibilityIdentifier("open-more-menu")
-        .accessibilityValue(isMoreMenuPresented ? "Expanded" : "Collapsed")
+    private func confirmDelete() {
+        Task { try? await feature.confirmDeleteCurrentNote() }
+    }
+
+    private func toggleMoreMenu() {
+        isMoreMenuPresented.toggle()
     }
 
     private func dismissMoreMenu() {
         isMoreMenuPresented = false
     }
 
-    private var noteSurface: some View {
-        IslandSurface(elevation: .card, radius: IslandDesign.Radius.card) {
-            VStack(alignment: .trailing, spacing: IslandDesign.Spacing.x2) {
-                if feature.isEditing {
-                    ZStack(alignment: .topLeading) {
-                        if feature.editingText.isEmpty {
-                            Text("Write what matters most…")
-                                .font(IslandDesign.Typography.editor)
-                                .foregroundStyle(IslandDesign.Colors.placeholder)
-                                .padding(.top, IslandDesign.Spacing.x1)
-                                .allowsHitTesting(false)
-                                .accessibilityHidden(true)
-                        }
-                        MarkedTextEditor(
-                            text: feature.editingText,
-                            onChange: { proposedText, markedTextActive in
-                                feature.stageEditorText(
-                                    proposedText: proposedText,
-                                    markedTextActive: markedTextActive
-                                ).acceptedText
-                            },
-                            onMarkedTextChange: { markedTextActive in
-                                editorComposition.textDidChange(
-                                    markedTextActive: markedTextActive
-                                )
-                            }
-                        )
-                        .frame(minHeight: IslandDesign.Sizing.editorMinimumHeight)
-                    }
-                } else {
-                    Button(action: feature.beginEditing) {
-                        RenderedNoteView(source: feature.currentNote?.body ?? "")
-                            .frame(
-                                maxWidth: .infinity,
-                                minHeight: IslandDesign.Sizing.editorMinimumHeight,
-                                alignment: .topLeading
-                            )
-                            .contentShape(Rectangle())
-                    }
-                    .buttonStyle(.plain)
-                    .disabled(!feature.canBeginEditing)
-                    .accessibilityIdentifier("rendered-note")
-                    .accessibilityHint(
-                        feature.canBeginEditing
-                            ? "Edit the current note source"
-                            : feature.noteMutationAvailability.accessibilityHint
-                    )
-                }
-
-                HStack(spacing: IslandDesign.Spacing.x2) {
-                    if feature.isEditing {
-                        Button("Done") {
-                            guard editorComposition.canSubmit(
-                                featureCanComplete: feature.canCompleteEditing
-                            ) else { return }
-                            try? feature.completeEditing()
-                        }
-                        .buttonStyle(IslandButtonStyle(kind: .primary))
-                        .disabled(
-                            !editorComposition.canSubmit(
-                                featureCanComplete: feature.canCompleteEditing
-                            )
-                        )
-                        .accessibilityIdentifier("done-editing")
-                        .accessibilityValue(
-                            editorComposition.hasMarkedText
-                                ? "Waiting for text composition"
-                                : ""
-                        )
-                        .accessibilityHint(doneAccessibilityHint)
-                    }
-
-                    Spacer(minLength: IslandDesign.Spacing.x2)
-
-                    CharacterProgressView(
-                        progress: feature.characterProgress,
-                        isExpanded: feature.isCharacterCountVisible,
-                        didReachLimit: feature.didReachCharacterLimit,
-                        reveal: feature.revealCharacterCount
-                    )
-                }
-            }
-            .padding(IslandDesign.Spacing.x6)
-        }
+    private func openNoteLibraryFromMenu() {
+        dismissMoreMenu()
+        openNoteLibrary()
     }
 
-    private var doneAccessibilityHint: String {
-        if editorComposition.hasMarkedText {
-            return "Finish composing text before saving"
-        }
-        return feature.noteMutationAvailability.accessibilityHint
+    private func openSettingsFromMenu() {
+        dismissMoreMenu()
+        openSettings()
     }
 }
 

@@ -101,15 +101,78 @@ final class WorkbenchPresentationTests: XCTestCase {
         )
     }
 
-    func testWorkbenchActionsMapToStableSemanticKindsAndRoles() {
-        XCTAssertEqual(WorkbenchActionSemantic.move.kind, .neutral)
-        XCTAssertNil(WorkbenchActionSemantic.move.role)
-        XCTAssertEqual(WorkbenchActionSemantic.goLive.kind, .neutral)
-        XCTAssertNil(WorkbenchActionSemantic.goLive.role)
-        XCTAssertEqual(WorkbenchActionSemantic.live.kind, .live)
-        XCTAssertNil(WorkbenchActionSemantic.live.role)
-        XCTAssertEqual(WorkbenchActionSemantic.delete.kind, .destructive)
-        XCTAssertEqual(WorkbenchActionSemantic.delete.role, .destructive)
+    func testWorkbenchActionDockModelMapsEveryLivePresentationState() {
+        let ready = WorkbenchActionDockModel.make(
+            contentAvailability: .enabled,
+            liveAvailability: .enabled,
+            pinState: .unpinned,
+            transition: nil
+        )
+        XCTAssertEqual(ready.live.state, .ready)
+        XCTAssertEqual(ready.live.label, "Go Live")
+        XCTAssertTrue(ready.live.isEnabled)
+
+        let starting = WorkbenchActionDockModel.make(
+            contentAvailability: .busy,
+            liveAvailability: .busy,
+            pinState: .unpinned,
+            transition: .starting
+        )
+        XCTAssertEqual(starting.live.state, .starting)
+        XCTAssertEqual(starting.live.accessibilityValue, "Starting")
+        XCTAssertFalse(starting.live.isEnabled)
+
+        let live = WorkbenchActionDockModel.make(
+            contentAvailability: .enabled,
+            liveAvailability: .enabled,
+            pinState: .pinned,
+            transition: nil
+        )
+        XCTAssertEqual(live.live.state, .live)
+        XCTAssertEqual(live.live.label, "Live")
+        XCTAssertEqual(live.live.accessibilityValue, "Live")
+
+        let stopping = WorkbenchActionDockModel.make(
+            contentAvailability: .busy,
+            liveAvailability: .busy,
+            pinState: .pinned,
+            transition: .stopping
+        )
+        XCTAssertEqual(stopping.live.state, .stopping)
+        XCTAssertEqual(stopping.live.accessibilityValue, "Stopping")
+        XCTAssertFalse(stopping.live.isEnabled)
+
+        let unavailable = WorkbenchActionDockModel.make(
+            contentAvailability: .needsContent,
+            liveAvailability: .needsContent,
+            pinState: .unpinned,
+            transition: nil
+        )
+        XCTAssertEqual(unavailable.live.state, .unavailable)
+        XCTAssertEqual(
+            unavailable.live.accessibilityHint,
+            "The current note needs non-whitespace text"
+        )
+        XCTAssertFalse(unavailable.live.isEnabled)
+    }
+
+    func testDockActionsKeepBusyStateWithoutChangingTheirSemanticOrder() {
+        let model = WorkbenchActionDockModel.make(
+            contentAvailability: .busy,
+            liveAvailability: .busy,
+            pinState: .unpinned,
+            transition: .starting
+        )
+
+        XCTAssertEqual(model.orderedAccessibilityLabels, [
+            "Move to Note Library",
+            "Go Live",
+            "Delete Note",
+        ])
+        XCTAssertTrue(model.move.isBusy)
+        XCTAssertTrue(model.delete.isBusy)
+        XCTAssertFalse(model.move.isEnabled)
+        XCTAssertFalse(model.delete.isEnabled)
     }
 
     func testRecoverableFeedbackAnnouncementOnlyEmitsForNewMessages() {

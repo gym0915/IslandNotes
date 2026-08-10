@@ -11,8 +11,9 @@ final class DeepLinkUITests: XCTestCase {
         ]
         app.launch()
 
-        XCTAssertTrue(app.scrollViews["workbench-root"].waitForExistence(timeout: 5))
-        XCTAssertTrue(app.buttons["rendered-note"].exists)
+        XCTAssertTrue(app.otherElements["workbench-root"].waitForExistence(timeout: 5))
+        XCTAssertFalse(app.scrollViews["workbench-root"].exists)
+        XCTAssertTrue(app.renderedNote.exists)
         XCTAssertFalse(app.textViews["current-note-editor"].exists)
         XCTAssertFalse(app.buttons["toggle-pin"].isEnabled)
     }
@@ -33,8 +34,9 @@ final class DeepLinkUITests: XCTestCase {
         let archive = app.buttons["archive-current-note"]
         XCTAssertTrue(archive.waitForExistence(timeout: 3))
         XCTAssertGreaterThanOrEqual(archive.frame.height, 44)
-        XCTAssertTrue(app.buttons["toggle-pin"].exists)
-        XCTAssertTrue(app.buttons["delete-current-note"].exists)
+        XCTAssertTrue(archive.isHittable)
+        XCTAssertTrue(app.buttons["toggle-pin"].isHittable)
+        XCTAssertTrue(app.buttons["delete-current-note"].isHittable)
     }
 
     func testPrimaryControlsExposeMeaningfulAccessibilityLabels() {
@@ -73,7 +75,7 @@ final class DeepLinkUITests: XCTestCase {
         )
         XCTAssertEqual(XCTWaiter.wait(for: [pinned], timeout: 5), .completed)
 
-        app.buttons["rendered-note"].tap()
+        app.renderedNote.tap()
         XCTAssertTrue(editor.waitForExistence(timeout: 2))
         editor.typeText(" updated")
         XCTAssertEqual(editor.value as? String, "Simulator live activity updated")

@@ -1,143 +1,188 @@
 import SwiftUI
 
-struct ActionDock: View {
-    @Bindable var feature: IslandNotesFeature
+enum LiveActionState: Equatable, Sendable {
+    case unavailable
+    case ready
+    case starting
+    case live
+    case stopping
+}
 
-    var body: some View {
-        ViewThatFits(in: .horizontal) {
-            HStack(spacing: IslandDesign.Spacing.x4) {
-                compactIconAction(moveAction)
+enum LiveActionTransition: Equatable, Sendable {
+    case starting
+    case stopping
+}
 
-                Spacer(minLength: IslandDesign.Spacing.x2)
-                liveAction
-                Spacer(minLength: IslandDesign.Spacing.x2)
+struct DockActionState: Equatable, Sendable {
+    let availability: WorkbenchActionAvailability
 
-                compactIconAction(deleteAction)
-            }
+    var isEnabled: Bool { availability.isEnabled }
+    var isBusy: Bool { availability == .busy }
+    var accessibilityHint: String { availability.accessibilityHint }
+}
 
-            VStack(spacing: IslandDesign.Spacing.x2) {
-                expandedAction(moveAction)
-                liveAction
-                expandedAction(deleteAction)
-            }
+struct LiveActionControlModel: Equatable, Sendable {
+    let state: LiveActionState
+    let availability: WorkbenchActionAvailability
+
+    var label: String {
+        switch state {
+        case .unavailable, .ready, .starting:
+            "Go Live"
+        case .live, .stopping:
+            "Live"
         }
     }
 
-    private var moveAction: DockAction {
-        DockAction(
-            title: "Move to Note Library",
-            icon: .moveToLibrary,
-            identifier: "archive-current-note",
-            semantic: .move,
-            availability: feature.contentActionAvailability,
-            perform: { Task { try? await feature.archiveCurrentNote() } }
-        )
-    }
-
-    private var deleteAction: DockAction {
-        DockAction(
-            title: "Delete Note",
-            icon: .delete,
-            identifier: "delete-current-note",
-            semantic: .delete,
-            availability: feature.contentActionAvailability,
-            perform: feature.requestDelete
-        )
-    }
-
-    private var liveAction: some View {
-        Button {
-            Task {
-                if feature.pinState == .pinned {
-                    await feature.cancelPinning()
-                } else {
-                    await feature.startPinning()
-                }
-            }
-        } label: {
-            if feature.pinState == .pinned {
-                Text("Live")
-            } else {
-                HStack(spacing: IslandDesign.Spacing.x2) {
-                    AppIconView(icon: .live, size: IslandDesign.Sizing.smallIcon)
-                    Text("Go Live")
-                }
-            }
+    var accessibilityValue: String {
+        switch state {
+        case .starting:
+            "Starting"
+        case .live:
+            "Live"
+        case .stopping:
+            "Stopping"
+        case .unavailable, .ready:
+            ""
         }
-        .buttonStyle(IslandButtonStyle(kind: liveSemantic.kind))
-        .disabled(!feature.liveActionAvailability.isEnabled)
-        .accessibilityIdentifier("toggle-pin")
-        .accessibilityLabel(feature.pinState == .pinned ? "Live" : "Go Live")
-        .accessibilityHint(
-            liveActionHint
-        )
     }
 
-    private func compactIconAction(_ action: DockAction) -> some View {
-        IslandIconButton(
-            icon: action.icon,
-            label: action.title,
-            kind: action.semantic.kind,
-            role: action.semantic.role,
-            action: action.perform
-        )
-        .disabled(!action.availability.isEnabled)
-        .accessibilityIdentifier(action.identifier)
-        .accessibilityHint(action.availability.accessibilityHint)
-    }
-
-    private func expandedAction(_ action: DockAction) -> some View {
-        Button(role: action.semantic.role, action: action.perform) {
-            HStack(spacing: IslandDesign.Spacing.x2) {
-                AppIconView(icon: action.icon, size: IslandDesign.Sizing.smallIcon)
-                Text(action.title)
-            }
-            .frame(maxWidth: .infinity)
-        }
-        .buttonStyle(IslandButtonStyle(kind: action.semantic.kind))
-        .disabled(!action.availability.isEnabled)
-        .accessibilityIdentifier(action.identifier)
-        .accessibilityHint(action.availability.accessibilityHint)
-    }
-
-    private var liveActionHint: String {
-        guard feature.liveActionAvailability.isEnabled else {
-            return feature.liveActionAvailability.accessibilityHint
-        }
-        return feature.pinState == .pinned
+    var accessibilityHint: String {
+        guard availability.isEnabled else { return availability.accessibilityHint }
+        return state == .live
             ? "Stops showing the current note on system surfaces"
             : ""
     }
 
-    private var liveSemantic: WorkbenchActionSemantic {
-        feature.pinState == .pinned ? .live : .goLive
+    var isEnabled: Bool {
+        availability.isEnabled && (state == .ready || state == .live)
     }
 }
 
-private struct DockAction {
-    let title: String
-    let icon: AppIcon
-    let identifier: String
-    let semantic: WorkbenchActionSemantic
-    let availability: WorkbenchActionAvailability
-    let perform: () -> Void
-}
+struct WorkbenchActionDockModel: Equatable, Sendable {
+    let move: DockActionState
+    let live: LiveActionControlModel
+    let delete: DockActionState
 
-enum WorkbenchActionSemantic: Equatable {
-    case move
-    case goLive
-    case live
-    case delete
-
-    var kind: IslandActionKind {
-        switch self {
-        case .move, .goLive: .neutral
-        case .live: .live
-        case .delete: .destructive
+    static func make(
+        contentAvailability: WorkbenchActionAvailability,
+        liveAvailability: WorkbenchActionAvailability,
+        pinState: PinState,
+        transition: LiveActionTransition?
+    ) -> WorkbenchActionDockModel {
+        let liveState: LiveActionState
+        if let transition {
+            liveState = transition == .starting ? .starting : .stopping
+        } else if pinState == .pinned {
+            liveState = .live
+        } else if liveAvailability.isEnabled {
+            liveState = .ready
+        } else {
+            liveState = .unavailable
         }
+
+        return WorkbenchActionDockModel(
+            move: DockActionState(availability: contentAvailability),
+            live: LiveActionControlModel(
+                state: liveState,
+                availability: liveAvailability
+            ),
+            delete: DockActionState(availability: contentAvailability)
+        )
     }
 
-    var role: ButtonRole? {
-        self == .delete ? .destructive : nil
+    var orderedAccessibilityLabels: [String] {
+        ["Move to Note Library", live.label, "Delete Note"]
+    }
+}
+
+struct WorkbenchActionDock: View {
+    let model: WorkbenchActionDockModel
+    var reduceMotionOverride: Bool? = nil
+    let move: () -> Void
+    let toggleLive: () -> Void
+    let delete: () -> Void
+
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
+
+    var body: some View {
+        ViewThatFits(in: .horizontal) {
+            dockRow(
+                spacing: preferredSpacing,
+                liveWidth: IslandDesign.Sizing.liveActionWidth
+            )
+            .padding(.horizontal, preferredHorizontalPadding)
+
+            dockRow(
+                spacing: IslandDesign.Spacing.x2,
+                liveWidth: IslandDesign.Sizing.compactLiveActionWidth
+            )
+            .padding(.horizontal, IslandDesign.Spacing.x4)
+        }
+        .padding(.bottom, preferredBottomPadding)
+        .accessibilityElement(children: .contain)
+        .accessibilityIdentifier("workbench-action-dock")
+    }
+
+    private var preferredHorizontalPadding: CGFloat {
+        let surfacePadding = dynamicTypeSize.isAccessibilitySize
+            ? IslandDesign.Spacing.x4
+            : IslandDesign.Spacing.x6
+        return surfacePadding + IslandDesign.Workbench.dockOuterControlInset
+    }
+
+    private var preferredSpacing: CGFloat {
+        dynamicTypeSize.isAccessibilitySize
+            ? IslandDesign.Spacing.x2
+            : IslandDesign.Spacing.x4
+    }
+
+    private var preferredBottomPadding: CGFloat {
+        dynamicTypeSize.isAccessibilitySize
+            ? IslandDesign.Spacing.x4
+            : IslandDesign.Spacing.x6
+    }
+
+    private var liveControlHeight: CGFloat {
+        dynamicTypeSize.isAccessibilitySize
+            ? IslandDesign.Sizing.accessibilityActionHeight
+            : IslandDesign.Sizing.dockActionHeight
+    }
+
+    private func dockRow(spacing: CGFloat, liveWidth: CGFloat) -> some View {
+        HStack(spacing: 0) {
+            DockIconAction(
+                icon: .moveToLibrary,
+                label: "Move to Note Library",
+                identifier: "archive-current-note",
+                state: model.move,
+                action: move
+            )
+            .accessibilitySortPriority(3)
+
+            Spacer(minLength: spacing)
+
+            LiveActionControl(
+                model: model.live,
+                width: liveWidth,
+                height: liveControlHeight,
+                compactContent: spacing == IslandDesign.Spacing.x2,
+                reduceMotionOverride: reduceMotionOverride,
+                action: toggleLive
+            )
+            .accessibilitySortPriority(2)
+
+            Spacer(minLength: spacing)
+
+            DockIconAction(
+                icon: .delete,
+                label: "Delete Note",
+                identifier: "delete-current-note",
+                state: model.delete,
+                action: delete
+            )
+            .accessibilitySortPriority(1)
+        }
+        .frame(maxWidth: .infinity)
     }
 }

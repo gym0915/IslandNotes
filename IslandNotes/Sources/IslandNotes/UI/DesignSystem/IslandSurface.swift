@@ -33,21 +33,24 @@ enum IslandSurfaceElevation: CaseIterable, Sendable {
 struct IslandSurface<Content: View>: View {
     let elevation: IslandSurfaceElevation
     let radius: CGFloat
+    private let background: AnyShapeStyle?
     private let content: Content
 
     init(
         elevation: IslandSurfaceElevation = .card,
         radius: CGFloat = IslandDesign.Radius.card,
+        background: Color? = nil,
         @ViewBuilder content: () -> Content
     ) {
         self.elevation = elevation
         self.radius = radius
+        self.background = background.map(AnyShapeStyle.init)
         self.content = content()
     }
 
     var body: some View {
         content
-            .background(elevation.background)
+            .background(background ?? elevation.background)
             .clipShape(RoundedRectangle(cornerRadius: radius, style: .continuous))
             .overlay {
                 if let border = elevation.border {

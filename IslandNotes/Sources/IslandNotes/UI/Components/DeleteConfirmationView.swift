@@ -9,42 +9,63 @@ struct DeleteConfirmationView: View {
 
     var body: some View {
         IslandSurface(elevation: .menu, radius: IslandDesign.Radius.card) {
-            VStack(spacing: IslandDesign.Spacing.x4) {
-                VStack(spacing: IslandDesign.Spacing.x2) {
-                    Text("Delete this note?")
-                        .font(IslandDesign.Typography.sheetTitle)
-                        .foregroundStyle(IslandDesign.Colors.primaryText)
-                        .accessibilitySortPriority(4)
-
-                    Text(message)
-                        .font(IslandDesign.Typography.body)
-                        .foregroundStyle(IslandDesign.Colors.secondaryText)
-                        .multilineTextAlignment(.center)
-                        .accessibilitySortPriority(3)
+            ViewThatFits(in: .vertical) {
+                VStack(spacing: IslandDesign.Spacing.x4) {
+                    explanation
+                    actions
                 }
 
-                if let feedback {
-                    HintMessageView(message: feedback)
-                }
+                VStack(spacing: IslandDesign.Spacing.x4) {
+                    ScrollView {
+                        explanation
+                    }
+                    .scrollIndicators(.hidden)
+                    .frame(maxHeight: .infinity)
 
-                VStack(spacing: IslandDesign.Spacing.x2) {
-                    Button("Delete Note", role: .destructive, action: confirm)
-                        .buttonStyle(DeleteConfirmationButtonStyle(kind: .destructive))
-                        .disabled(isBusy)
-                        .accessibilityIdentifier("confirm-delete-note")
-                        .accessibilitySortPriority(2)
-
-                    Button("Cancel", action: cancel)
-                        .buttonStyle(DeleteConfirmationButtonStyle(kind: .neutral))
-                        .disabled(isBusy)
-                        .accessibilityIdentifier("cancel-delete")
-                        .accessibilitySortPriority(1)
+                    actions
                 }
             }
             .padding(IslandDesign.Spacing.x6)
         }
         .accessibilityElement(children: .contain)
         .accessibilityIdentifier("delete-confirmation")
+    }
+
+    private var explanation: some View {
+        VStack(spacing: IslandDesign.Spacing.x4) {
+            VStack(spacing: IslandDesign.Spacing.x2) {
+                Text("Delete this note?")
+                    .font(IslandDesign.Typography.sheetTitle)
+                    .foregroundStyle(IslandDesign.Colors.primaryText)
+                    .accessibilitySortPriority(4)
+
+                Text(message)
+                    .font(IslandDesign.Typography.body)
+                    .foregroundStyle(IslandDesign.Colors.secondaryText)
+                    .multilineTextAlignment(.center)
+                    .accessibilitySortPriority(3)
+            }
+
+            if let feedback {
+                HintMessageView(message: feedback)
+            }
+        }
+    }
+
+    private var actions: some View {
+        VStack(spacing: IslandDesign.Spacing.x2) {
+            Button("Delete Note", role: .destructive, action: confirm)
+                .buttonStyle(DeleteConfirmationButtonStyle(kind: .destructive))
+                .disabled(isBusy)
+                .accessibilityIdentifier("confirm-delete-note")
+                .accessibilitySortPriority(2)
+
+            Button("Cancel", action: cancel)
+                .buttonStyle(DeleteConfirmationButtonStyle(kind: .neutral))
+                .disabled(isBusy)
+                .accessibilityIdentifier("cancel-delete")
+                .accessibilitySortPriority(1)
+        }
     }
 }
 

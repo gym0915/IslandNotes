@@ -163,22 +163,22 @@ private enum PreviewFixtures {
     }
 }
 
-#Preview("Workbench · Empty Light") {
+#Preview("Workbench · Empty · Light") {
     PreviewFixtures.workbench()
         .preferredColorScheme(.light)
 }
 
-#Preview("Workbench · Empty Dark") {
+#Preview("Workbench · Empty · Dark") {
     PreviewFixtures.workbench()
         .preferredColorScheme(.dark)
 }
 
-#Preview("App Shell · Light") {
+#Preview("Workbench · Note · Light") {
     PreviewFixtures.workbench(body: "A clear place for what matters now.")
         .preferredColorScheme(.light)
 }
 
-#Preview("App Shell · Dark") {
+#Preview("Workbench · Note · Dark") {
     PreviewFixtures.workbench(body: "A clear place for what matters now.")
         .preferredColorScheme(.dark)
 }
@@ -241,7 +241,7 @@ private enum PreviewFixtures {
     )
 }
 
-#Preview("Workbench · Editing Source Light") {
+#Preview("Workbench · Editing · Light") {
     PreviewFixtures.workbench(
         body: "Saved source\n- Saved bullet",
         editingDraft: "Editing source\n- Draft bullet"
@@ -249,7 +249,7 @@ private enum PreviewFixtures {
     .preferredColorScheme(.light)
 }
 
-#Preview("Workbench · Editing Source Dark") {
+#Preview("Workbench · Editing · Dark") {
     PreviewFixtures.workbench(
         body: "Saved source\n- Saved bullet",
         editingDraft: "Editing source\n- Draft bullet"
@@ -313,12 +313,12 @@ private enum PreviewFixtures {
     .preferredColorScheme(.dark)
 }
 
-#Preview("Workbench · Live Light") {
+#Preview("Workbench · Live · Light") {
     PreviewFixtures.workbench(body: "This note is currently Live.", pinState: .pinned)
         .preferredColorScheme(.light)
 }
 
-#Preview("Workbench · Live Dark") {
+#Preview("Workbench · Live · Dark") {
     PreviewFixtures.workbench(body: "This note is currently Live.", pinState: .pinned)
         .preferredColorScheme(.dark)
 }

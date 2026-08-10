@@ -47,7 +47,7 @@ final class IslandNotesUITests: XCTestCase {
         XCTAssertGreaterThanOrEqual(library.frame.height, 44)
         XCTAssertGreaterThanOrEqual(settings.frame.height, 44)
 
-        app.scrollViews["workbench-root"]
+        app.otherElements["workbench-root"]
             .coordinate(withNormalizedOffset: CGVector(dx: 0.1, dy: 0.9))
             .tap()
 
@@ -56,7 +56,7 @@ final class IslandNotesUITests: XCTestCase {
 
     func testViewingEditingAndDoneRendersOnlyExactBulletLines() {
         let app = launchCleanApp()
-        let renderedNote = app.buttons["rendered-note"]
+        let renderedNote = app.renderedNote
 
         let editor = beginWorkbenchEditing(in: app)
         XCTAssertEqual(editor.value as? String, "")
@@ -89,7 +89,8 @@ final class IslandNotesUITests: XCTestCase {
         XCTAssertGreaterThanOrEqual(closeButton.frame.height, 44)
         closeButton.tap()
 
-        XCTAssertTrue(app.scrollViews["workbench-root"].waitForExistence(timeout: 3))
+        XCTAssertTrue(app.otherElements["workbench-root"].waitForExistence(timeout: 3))
+        XCTAssertFalse(app.scrollViews["workbench-root"].exists)
         XCTAssertFalse(app.otherElements["app-sheet"].exists)
     }
 
@@ -149,8 +150,11 @@ final class IslandNotesUITests: XCTestCase {
 
         let productTitle = app.staticTexts["Island Notes"]
         XCTAssertTrue(productTitle.waitForExistence(timeout: 5))
-        XCTAssertTrue(app.staticTexts["Not Live"].exists)
-        XCTAssertTrue(app.buttons["rendered-note"].waitForExistence(timeout: 5))
+        let header = app.otherElements["workbench-header"]
+        XCTAssertTrue(header.exists)
+        XCTAssertFalse(header.staticTexts["Not Live"].exists)
+        XCTAssertFalse(header.staticTexts["Live"].exists)
+        XCTAssertTrue(app.renderedNote.waitForExistence(timeout: 5))
         XCTAssertFalse(app.textViews["current-note-editor"].exists)
         let moreButton = app.buttons["open-more-menu"]
         XCTAssertTrue(moreButton.exists)
@@ -171,7 +175,7 @@ final class IslandNotesUITests: XCTestCase {
         let editor = beginWorkbenchEditing(in: app)
 
         XCTAssertTrue(editor.exists)
-        XCTAssertFalse(app.buttons["rendered-note"].exists)
+        XCTAssertFalse(app.renderedNote.exists)
         XCTAssertTrue(app.buttons["done-editing"].exists)
         XCTAssertFalse(app.staticTexts["Write what matters most…"].exists)
     }
@@ -193,7 +197,7 @@ final class IslandNotesUITests: XCTestCase {
         XCTAssertEqual(done.value as? String, "Waiting for text composition")
         done.tap()
         XCTAssertTrue(editor.exists)
-        XCTAssertFalse(app.buttons["rendered-note"].exists)
+        XCTAssertFalse(app.renderedNote.exists)
     }
 
     func testEditorProgressDoneAndActionsRemainHittableAtMaximumDynamicType() {
@@ -206,35 +210,40 @@ final class IslandNotesUITests: XCTestCase {
         ]
         app.launch()
 
-        let workbench = app.scrollViews["workbench-root"]
+        let workbench = app.otherElements["workbench-root"]
         let productTitle = app.staticTexts["Island Notes"]
         let moreButton = app.buttons["open-more-menu"]
         XCTAssertTrue(productTitle.waitForExistence(timeout: 5))
+        XCTAssertTrue(workbench.exists)
+        XCTAssertFalse(app.scrollViews["workbench-root"].exists)
         XCTAssertTrue(moreButton.isHittable)
         XCTAssertFalse(productTitle.frame.intersects(moreButton.frame))
 
-        let renderedNote = app.buttons["rendered-note"]
-        makeHittable(renderedNote, in: workbench)
+        let renderedNote = app.renderedNote
+        XCTAssertTrue(renderedNote.isHittable)
         renderedNote.tap()
 
         let editor = app.textViews["current-note-editor"]
-        makeHittable(editor, in: workbench)
+        XCTAssertTrue(editor.waitForExistence(timeout: 2))
+        XCTAssertTrue(editor.isHittable)
         editor.tap()
         editor.typeText("Maximum Dynamic Type")
 
         let characterProgress = app.buttons["character-progress"]
-        makeHittable(characterProgress, in: workbench)
+        XCTAssertTrue(characterProgress.isHittable)
         characterProgress.tap()
         XCTAssertEqual(characterProgress.value as? String, "20 used, 220 remaining")
-        XCTAssertFalse(app.descendants(matching: .any)["character-progress-detail"].exists)
+        XCTAssertTrue(app.descendants(matching: .any)["character-progress-detail"].exists)
 
         let done = app.buttons["done-editing"]
-        makeHittable(done, in: workbench)
+        XCTAssertTrue(done.isHittable)
         done.tap()
         XCTAssertTrue(renderedNote.waitForExistence(timeout: 3))
 
         for identifier in ["archive-current-note", "toggle-pin", "delete-current-note"] {
-            makeHittable(app.buttons[identifier], in: workbench)
+            let action = app.buttons[identifier]
+            XCTAssertTrue(action.waitForExistence(timeout: 3))
+            XCTAssertTrue(action.isHittable)
         }
     }
 
@@ -244,7 +253,7 @@ final class IslandNotesUITests: XCTestCase {
 
         editor.typeText("A note to keep")
 
-        XCTAssertFalse(app.buttons["delete-current-note"].isEnabled)
+        XCTAssertFalse(app.buttons["delete-current-note"].exists)
         app.buttons["done-editing"].tap()
 
         let delete = app.buttons["delete-current-note"]
@@ -275,14 +284,17 @@ final class IslandNotesUITests: XCTestCase {
 
         app.buttons["cancel-delete"].tap()
         XCTAssertFalse(confirmation.exists)
-        XCTAssertTrue(app.buttons["rendered-note"].label.contains("A note to keep"))
+        XCTAssertTrue(app.renderedNote.label.contains("A note to keep"))
 
         delete.tap()
         XCTAssertTrue(confirmation.waitForExistence(timeout: 2))
         app.buttons["confirm-delete-note"].tap()
 
-        XCTAssertTrue(app.buttons["rendered-note"].waitForExistence(timeout: 3))
-        XCTAssertEqual(app.buttons["rendered-note"].label, "Write what matters most…")
+        XCTAssertTrue(app.renderedNote.waitForExistence(timeout: 3))
+        XCTAssertEqual(
+            app.renderedNote.label,
+            "Add something you want to keep close, then go live on Dynamic Island."
+        )
         XCTAssertFalse(delete.isEnabled)
     }
 
@@ -298,7 +310,7 @@ final class IslandNotesUITests: XCTestCase {
         ]
         app.launch()
 
-        let rendered = app.buttons["rendered-note"]
+        let rendered = app.renderedNote
         XCTAssertTrue(rendered.waitForExistence(timeout: 5))
         XCTAssertTrue(rendered.label.contains("Last committed source"))
         app.buttons["delete-current-note"].tap()
@@ -316,7 +328,7 @@ final class IslandNotesUITests: XCTestCase {
         XCTAssertTrue(rendered.label.contains("Last committed source"))
     }
 
-    func testDeterministicUITestLiveTransitionUpdatesHeaderAndRemainsStoppable() {
+    func testDeterministicUITestLiveTransitionKeepsHeaderFocusedAndRemainsStoppable() {
         let app = launchCleanApp()
         let editor = beginWorkbenchEditing(in: app)
         editor.typeText("A deterministic Live note")
@@ -331,7 +343,9 @@ final class IslandNotesUITests: XCTestCase {
             object: toggleLive
         )
         XCTAssertEqual(XCTWaiter.wait(for: [liveAction], timeout: 3), .completed)
-        XCTAssertTrue(app.staticTexts["Live"].firstMatch.exists)
+        let header = app.otherElements["workbench-header"]
+        XCTAssertFalse(header.staticTexts["Live"].exists)
+        XCTAssertFalse(header.staticTexts["Not Live"].exists)
 
         toggleLive.tap()
         let goLiveAction = XCTNSPredicateExpectation(
@@ -339,7 +353,8 @@ final class IslandNotesUITests: XCTestCase {
             object: toggleLive
         )
         XCTAssertEqual(XCTWaiter.wait(for: [goLiveAction], timeout: 3), .completed)
-        XCTAssertTrue(app.staticTexts["Not Live"].exists)
+        XCTAssertFalse(header.staticTexts["Live"].exists)
+        XCTAssertFalse(header.staticTexts["Not Live"].exists)
     }
 
     func testLibraryIsReachableWhenEmpty() {
@@ -381,9 +396,9 @@ final class IslandNotesUITests: XCTestCase {
         XCTAssertTrue(app.otherElements["app-sheet"].exists)
 
         replace.tap()
-        XCTAssertTrue(app.buttons["rendered-note"].waitForExistence(timeout: 3))
+        XCTAssertTrue(app.renderedNote.waitForExistence(timeout: 3))
         XCTAssertFalse(editor.exists)
-        XCTAssertTrue(app.buttons["rendered-note"].label.contains("Old note from library"))
+        XCTAssertTrue(app.renderedNote.label.contains("Old note from library"))
     }
 
     func testLibraryReplacementArchivesCommittedOutgoingNoteAndDiscardsLivingDraft() {
@@ -398,7 +413,7 @@ final class IslandNotesUITests: XCTestCase {
         outgoingEditor.typeText("Outgoing committed")
         app.buttons["done-editing"].tap()
 
-        app.buttons["rendered-note"].tap()
+        app.renderedNote.tap()
         let livingDraft = app.textViews["current-note-editor"]
         XCTAssertTrue(livingDraft.waitForExistence(timeout: 2))
         livingDraft.typeText(" unsaved")
@@ -408,7 +423,7 @@ final class IslandNotesUITests: XCTestCase {
         XCTAssertTrue(app.staticTexts["Library candidate"].waitForExistence(timeout: 3))
         app.buttons["Replace current note"].tap()
 
-        let rendered = app.buttons["rendered-note"]
+        let rendered = app.renderedNote
         XCTAssertTrue(rendered.waitForExistence(timeout: 3))
         XCTAssertTrue(rendered.label.contains("Library candidate"))
         XCTAssertFalse(livingDraft.exists)
@@ -431,7 +446,7 @@ final class IslandNotesUITests: XCTestCase {
 
         XCTAssertTrue(editor.waitForExistence(timeout: 3))
         XCTAssertEqual(editor.value as? String, "Draft across a sheet")
-        XCTAssertFalse(app.buttons["archive-current-note"].isEnabled)
+        XCTAssertFalse(app.buttons["archive-current-note"].exists)
     }
 
     func testDraftSurvivesOrdinaryBackgroundAndResume() {
@@ -454,8 +469,8 @@ final class IslandNotesUITests: XCTestCase {
 
         XCTAssertEqual((editor.value as? String)?.count, 240)
         app.buttons["character-progress"].tap()
-        XCTAssertFalse(app.descendants(matching: .any)["character-progress-detail"].exists)
-        XCTAssertFalse(app.staticTexts["240 used · 0 remaining"].exists)
+        XCTAssertTrue(app.descendants(matching: .any)["character-progress-detail"].exists)
+        XCTAssertTrue(app.staticTexts["240 used · 0 remaining"].exists)
         XCTAssertEqual(
             app.buttons["character-progress"].value as? String,
             "240 used, 0 remaining"
@@ -470,7 +485,7 @@ final class IslandNotesUITests: XCTestCase {
         let app = XCUIApplication()
         app.launchArguments = ["--uitesting-reset", "--uitesting-save-failure"]
         app.launch()
-        let renderedNote = app.buttons["rendered-note"]
+        let renderedNote = app.renderedNote
         XCTAssertTrue(renderedNote.waitForExistence(timeout: 5))
         XCTAssertTrue(renderedNote.label.contains("Last committed source"))
         let editor = beginWorkbenchEditing(in: app)

@@ -10,7 +10,6 @@ final class DesignSystemTests: XCTestCase {
             .settings: "lucide-settings",
             .close: "lucide-x",
             .moveToLibrary: "lucide-archive",
-            .live: "lucide-radio",
             .delete: "lucide-trash-2",
             .replace: "lucide-replace",
             .appearance: "lucide-monitor",
@@ -35,6 +34,10 @@ final class DesignSystemTests: XCTestCase {
         for icon in AppIcon.allCases {
             XCTAssertNotNil(UIImage(named: icon.assetName), icon.assetName)
         }
+    }
+
+    func testWorkbenchLiveStatusDoesNotExposeTheLegacyRadioIcon() {
+        XCTAssertFalse(AppIcon.allCases.map(\.assetName).contains("lucide-radio"))
     }
 
     func testAutomaticAppearanceUsesTheAppearanceIcon() {

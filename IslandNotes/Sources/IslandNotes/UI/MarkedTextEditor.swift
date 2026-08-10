@@ -3,15 +3,23 @@ import UIKit
 
 struct MarkedTextEditor: UIViewRepresentable {
     let text: String
+    let textContainerInset: UIEdgeInsets
     let onChange: (String, Bool) -> String
     let onMarkedTextChange: (Bool) -> Void
 
     init(
         text: String,
+        textContainerInset: UIEdgeInsets = UIEdgeInsets(
+            top: IslandDesign.Spacing.x1,
+            left: 0,
+            bottom: IslandDesign.Spacing.x1,
+            right: 0
+        ),
         onChange: @escaping (String, Bool) -> String,
         onMarkedTextChange: @escaping (Bool) -> Void = { _ in }
     ) {
         self.text = text
+        self.textContainerInset = textContainerInset
         self.onChange = onChange
         self.onMarkedTextChange = onMarkedTextChange
     }
@@ -28,12 +36,7 @@ struct MarkedTextEditor: UIViewRepresentable {
             forTextStyle: IslandDesign.Typography.editorTextStyle
         )
         textView.adjustsFontForContentSizeCategory = true
-        textView.textContainerInset = UIEdgeInsets(
-            top: IslandDesign.Spacing.x1,
-            left: .zero,
-            bottom: IslandDesign.Spacing.x1,
-            right: .zero
-        )
+        textView.textContainerInset = textContainerInset
         textView.textContainer.lineFragmentPadding = 0
         textView.keyboardDismissMode = .interactive
         textView.accessibilityIdentifier = "current-note-editor"
@@ -47,11 +50,13 @@ struct MarkedTextEditor: UIViewRepresentable {
 
     func updateUIView(_ textView: UITextView, context: Context) {
         context.coordinator.parent = self
+        textView.textContainerInset = textContainerInset
         if textView.markedTextRange == nil {
             context.coordinator.committedText = text
         }
         guard textView.markedTextRange == nil, textView.text != text else { return }
         textView.text = text
+        textView.scrollRangeToVisible(textView.selectedRange)
     }
 
     @MainActor
@@ -84,13 +89,17 @@ struct MarkedTextEditor: UIViewRepresentable {
             )
             let acceptedText = parent.onChange(limitResult.acceptedText, false)
             committedText = acceptedText
-            guard acceptedText != textView.text else { return }
+            guard acceptedText != textView.text else {
+                textView.scrollRangeToVisible(textView.selectedRange)
+                return
+            }
 
             textView.text = acceptedText
             textView.selectedRange = NSRange(
                 location: min(limitResult.selectionUTF16Offset, acceptedText.utf16.count),
                 length: 0
             )
+            textView.scrollRangeToVisible(textView.selectedRange)
         }
     }
 }

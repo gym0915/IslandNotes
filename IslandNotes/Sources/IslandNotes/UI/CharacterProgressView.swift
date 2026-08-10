@@ -39,11 +39,12 @@ struct CharacterProgressView: View {
         Button(action: reveal) {
             ZStack {
                 Circle()
-                    .stroke(
+                    .strokeBorder(
                         IslandDesign.Colors.progressTrack,
                         lineWidth: IslandDesign.Sizing.progressStroke
                     )
                 Circle()
+                    .inset(by: IslandDesign.Sizing.progressStroke / 2)
                     .trim(
                         from: 0,
                         to: CGFloat(progress.used) / CGFloat(TextLimiter.maximumCharacterCount)

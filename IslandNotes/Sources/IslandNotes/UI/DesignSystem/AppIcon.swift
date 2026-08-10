@@ -6,7 +6,6 @@ enum AppIcon: String, CaseIterable {
     case settings = "lucide-settings"
     case close = "lucide-x"
     case moveToLibrary = "lucide-archive"
-    case live = "lucide-radio"
     case delete = "lucide-trash-2"
     case replace = "lucide-replace"
     case appearance = "lucide-monitor"

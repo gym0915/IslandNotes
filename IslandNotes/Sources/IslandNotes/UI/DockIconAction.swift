@@ -12,14 +12,6 @@ struct DockIconAction: View {
     var body: some View {
         Button(action: action) {
             ZStack {
-                Circle()
-                    .fill(IslandDesign.Colors.dockControlBackground)
-                Circle()
-                    .strokeBorder(
-                        IslandDesign.Colors.surfaceBorder,
-                        lineWidth: borderWidth
-                    )
-
                 if state.isBusy {
                     ProgressView()
                         .controlSize(.small)
@@ -33,11 +25,11 @@ struct DockIconAction: View {
                 width: IslandDesign.Sizing.dockIconTarget,
                 height: IslandDesign.Sizing.dockIconTarget
             )
-            .shadow(
-                color: IslandDesign.Elevation.control.color,
-                radius: IslandDesign.Elevation.control.radius,
-                x: IslandDesign.Elevation.control.x,
-                y: IslandDesign.Elevation.control.y
+            .islandInteractiveGlass(
+                shape: .circle,
+                fallbackFill: AnyShapeStyle(IslandDesign.Colors.dockControlBackground),
+                fallbackBorder: IslandDesign.Colors.surfaceBorder,
+                fallbackBorderWidth: borderWidth
             )
             .contentShape(Circle())
         }

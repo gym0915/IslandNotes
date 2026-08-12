@@ -68,12 +68,13 @@ final class DesignSystemTests: XCTestCase {
     func testNormativeRadiusScaleContainsOnlyApprovedValues() {
         XCTAssertEqual(
             [
+                IslandDesign.Radius.settingsItem,
                 IslandDesign.Radius.compact,
                 IslandDesign.Radius.card,
                 IslandDesign.Radius.sheet,
                 IslandDesign.Radius.pill,
             ],
-            [14, 22, 34, 1_000]
+            [10, 14, 22, 34, 1_000]
         )
     }
 

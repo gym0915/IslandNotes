@@ -7,9 +7,9 @@ final class WorkbenchLayoutContractUITests: XCTestCase {
         static let horizontalContentInset: CGFloat = 24
         static let dockOuterControlInset: CGFloat = 16
         static let dockSideActionSize: CGFloat = 56
-        static let dockLiveActionWidth: CGFloat = 156
+        static let dockLiveActionWidth: CGFloat = 140
         static let dockActionHeight: CGFloat = 56
-        static let liveIndicatorCenterX: CGFloat = 33
+        static let liveIndicatorCenterX: CGFloat = 28
         static let alignmentTolerance: CGFloat = 1
         static let indicatorCenterTolerance: CGFloat = 0.5
     }
@@ -131,13 +131,13 @@ final class WorkbenchLayoutContractUITests: XCTestCase {
 
         let editor = beginWorkbenchEditing(in: app)
         editor.typeText("A stable dock note")
-        app.buttons["done-editing"].tap()
-        XCTAssertTrue(dock.waitForExistence(timeout: 3))
-        let noteY = dock.frame.midY
-
         let characterProgress = app.buttons["character-progress"]
         XCTAssertTrue(characterProgress.isHittable)
         characterProgress.tap()
+        app.buttons["done-editing"].tap()
+        XCTAssertTrue(dock.waitForExistence(timeout: 3))
+        let noteY = dock.frame.midY
+        XCTAssertFalse(characterProgress.exists)
         let characterCountY = dock.frame.midY
 
         let live = app.buttons["toggle-pin"]

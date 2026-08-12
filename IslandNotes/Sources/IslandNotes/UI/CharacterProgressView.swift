@@ -68,7 +68,7 @@ struct CharacterProgressView: View {
                 minWidth: IslandDesign.Sizing.minimumTouchTarget,
                 minHeight: IslandDesign.Sizing.minimumTouchTarget
             )
-            .contentShape(Rectangle())
+            .contentShape(Circle())
         }
         .buttonStyle(.plain)
         .accessibilityIdentifier("character-progress")

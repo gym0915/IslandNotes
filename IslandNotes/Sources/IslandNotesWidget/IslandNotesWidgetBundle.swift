@@ -17,12 +17,7 @@ struct IslandNotesLiveActivityWidget: Widget {
                 state: context.state
             )
 
-            LiveActivityNoteView(
-                presentation: presentation,
-                surface: .lockScreen
-            )
-            .activityBackgroundTint(.clear)
-            .activitySystemActionForegroundColor(.primary)
+            LiveActivityLockScreenView(presentation: presentation)
             .widgetURL(presentation.destination)
         } dynamicIsland: { context in
             let presentation = LiveActivityPresentationModel.presentation(
@@ -34,9 +29,12 @@ struct IslandNotesLiveActivityWidget: Widget {
                 DynamicIslandExpandedRegion(.center) {
                     LiveActivityNoteView(
                         presentation: presentation,
-                        surface: .expandedIsland
+                        surface: .expandedIsland,
+                        foregroundColor: .white
                     )
+                    .frame(maxWidth: .infinity, alignment: .topLeading)
                 }
+                .contentMargins(.top, 0)
             } compactLeading: {
                 brandMark(for: .compactLeading, state: context.state)
             } compactTrailing: {

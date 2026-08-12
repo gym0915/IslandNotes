@@ -12,32 +12,33 @@ struct LiveActionControl: View {
 
     var body: some View {
         Button(action: action) {
-            HStack(spacing: IslandDesign.Spacing.x2) {
-                LiveStatusIndicator(
-                    state: model.state,
-                    reduceMotionOverride: reduceMotionOverride
-                )
+            ZStack {
                 Text(model.label)
                     .font(IslandDesign.Typography.action)
                     .foregroundStyle(IslandDesign.Colors.primaryText)
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                    .multilineTextAlignment(.leading)
+                    .multilineTextAlignment(.center)
                     .lineLimit(2)
-            }
-            .padding(.leading, IslandDesign.Sizing.liveIndicatorLeadingPadding)
-            .padding(
-                .trailing,
-                compactContent ? IslandDesign.Spacing.x2 : IslandDesign.Spacing.x4
-            )
-            .frame(width: width, height: height, alignment: .leading)
-            .background(IslandDesign.Colors.liveActionBackground, in: Capsule())
-            .overlay {
-                Capsule()
-                    .strokeBorder(
-                        IslandDesign.Colors.liveActionBorder,
-                        lineWidth: borderWidth
+                    .padding(
+                        .horizontal,
+                        compactContent ? IslandDesign.Spacing.x4 : IslandDesign.Spacing.x6
                     )
+
+                HStack(spacing: 0) {
+                    LiveStatusIndicator(
+                        state: model.state,
+                        reduceMotionOverride: reduceMotionOverride
+                    )
+                    Spacer(minLength: 0)
+                }
+                .padding(.leading, IslandDesign.Sizing.liveIndicatorLeadingPadding)
             }
+            .frame(width: width, height: height)
+            .islandInteractiveGlass(
+                shape: .capsule,
+                fallbackFill: AnyShapeStyle(IslandDesign.Colors.liveActionBackground),
+                fallbackBorder: IslandDesign.Colors.liveActionBorder,
+                fallbackBorderWidth: borderWidth
+            )
             .contentShape(Capsule())
         }
         .buttonStyle(
@@ -89,15 +90,26 @@ struct LiveStatusIndicator: View {
         .accessibilityHidden(true)
         .task(id: pulseTaskID) {
             isPulseDimmed = false
-            guard state == .live, !effectiveReduceMotion else { return }
+            guard state == .live else { return }
 
             while !Task.isCancelled {
-                withAnimation(.easeInOut(duration: IslandDesign.Motion.livePulseHalfCycle)) {
-                    isPulseDimmed.toggle()
-                }
                 do {
                     try await Task.sleep(
-                        for: .seconds(IslandDesign.Motion.livePulseHalfCycle)
+                        for: .seconds(IslandDesign.Motion.livePulseEndpointHold)
+                    )
+                } catch {
+                    return
+                }
+
+                withAnimation(
+                    .easeInOut(duration: IslandDesign.Motion.livePulseTransitionDuration)
+                ) {
+                    isPulseDimmed.toggle()
+                }
+
+                do {
+                    try await Task.sleep(
+                        for: .seconds(IslandDesign.Motion.livePulseTransitionDuration)
                     )
                 } catch {
                     return
@@ -119,31 +131,22 @@ struct LiveStatusIndicator: View {
     }
 
     private func liveDot(isBreathing: Bool) -> some View {
-        ZStack {
-            Circle()
-                .fill(IslandDesign.Colors.workbenchLiveHalo)
-                .frame(
-                    width: IslandDesign.Sizing.liveStatusHalo,
-                    height: IslandDesign.Sizing.liveStatusHalo
-                )
-                .opacity(
-                    isBreathing && isPulseDimmed
-                        ? IslandDesign.Opacity.livePulseHalo
-                        : 1
-                )
-
-            Circle()
-                .fill(IslandDesign.Colors.workbenchLiveCore)
-                .frame(
-                    width: IslandDesign.Sizing.liveStatusDot,
-                    height: IslandDesign.Sizing.liveStatusDot
-                )
-                .opacity(
-                    isBreathing && isPulseDimmed
-                        ? IslandDesign.Opacity.livePulseCore
-                        : 1
-                )
-        }
+        Circle()
+            .fill(IslandDesign.Colors.workbenchLiveCore)
+            .frame(
+                width: IslandDesign.Sizing.liveStatusDot,
+                height: IslandDesign.Sizing.liveStatusDot
+            )
+            .opacity(
+                isBreathing && isPulseDimmed
+                    ? IslandDesign.Opacity.livePulseCore
+                    : 1
+            )
+            .scaleEffect(
+                isBreathing && isPulseDimmed && !effectiveReduceMotion
+                    ? 0.78
+                    : 1
+            )
     }
 
     private func progressArc(color: Color) -> some View {

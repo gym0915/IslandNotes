@@ -23,6 +23,10 @@ struct SettingsRow: View {
             }
             .padding(.horizontal, IslandDesign.Spacing.x4)
             .frame(minHeight: IslandDesign.Sizing.minimumTouchTarget)
+            .islandInteractiveGlass(
+                shape: .roundedRectangle(IslandDesign.Radius.settingsItem),
+                fallbackFill: AnyShapeStyle(IslandDesign.Colors.surface)
+            )
             .contentShape(Rectangle())
         }
         .buttonStyle(SettingsRowButtonStyle())

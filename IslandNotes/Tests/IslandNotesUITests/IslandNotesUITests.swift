@@ -104,9 +104,14 @@ final class IslandNotesUITests: XCTestCase {
         XCTAssertTrue(app.staticTexts["Appearance"].exists)
         XCTAssertTrue(app.staticTexts["Support"].exists)
         XCTAssertEqual(app.buttons["display-mode-menu"].value as? String, "Automatic")
-        XCTAssertTrue(app.buttons["settings-feedback"].exists)
-        XCTAssertTrue(app.buttons["settings-website"].exists)
-        XCTAssertTrue(app.buttons["settings-about"].exists)
+        let feedback = app.buttons["settings-feedback"]
+        let website = app.buttons["settings-website"]
+        let about = app.buttons["settings-about"]
+        XCTAssertTrue(feedback.exists)
+        XCTAssertTrue(website.exists)
+        XCTAssertTrue(about.exists)
+        XCTAssertEqual(website.frame.minY - feedback.frame.maxY, 8, accuracy: 1)
+        XCTAssertEqual(about.frame.minY - website.frame.maxY, 8, accuracy: 1)
         XCTAssertFalse(app.staticTexts["Privacy"].exists)
         XCTAssertGreaterThanOrEqual(app.buttons["close-sheet"].frame.height, 44)
 
@@ -162,11 +167,7 @@ final class IslandNotesUITests: XCTestCase {
         XCTAssertFalse(app.buttons["archive-current-note"].isEnabled)
         XCTAssertFalse(app.buttons["toggle-pin"].isEnabled)
         XCTAssertFalse(app.buttons["delete-current-note"].isEnabled)
-
-        let progress = app.buttons["character-progress"]
-        XCTAssertGreaterThanOrEqual(progress.frame.width, 44)
-        XCTAssertGreaterThanOrEqual(progress.frame.height, 44)
-        XCTAssertEqual(progress.value as? String, "0 used, 240 remaining")
+        XCTAssertFalse(app.buttons["character-progress"].exists)
     }
 
     func testTappingDisplaySurfaceOpensExactSourceEditorAndDoneAction() {

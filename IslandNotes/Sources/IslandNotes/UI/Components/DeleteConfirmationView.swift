@@ -80,12 +80,10 @@ private struct DeleteConfirmationButtonStyle: ButtonStyle {
             .font(IslandDesign.Typography.action)
             .foregroundStyle(kind.foreground)
             .frame(maxWidth: .infinity, minHeight: IslandDesign.Sizing.actionHeight)
-            .background(
-                kind.background,
-                in: RoundedRectangle(
-                    cornerRadius: IslandDesign.Radius.compact,
-                    style: .continuous
-                )
+            .islandInteractiveGlass(
+                shape: .roundedRectangle(IslandDesign.Radius.compact),
+                tint: kind.glassTint,
+                fallbackFill: AnyShapeStyle(kind.background)
             )
             .opacity(isEnabled ? (configuration.isPressed ? 0.72 : 1) : 0.42)
             .scaleEffect(

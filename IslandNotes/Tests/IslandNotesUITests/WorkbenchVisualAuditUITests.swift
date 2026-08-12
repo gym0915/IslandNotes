@@ -9,25 +9,17 @@ final class WorkbenchVisualAuditUITests: XCTestCase {
         capture("01-empty-light")
         let editor = beginWorkbenchEditing(in: app)
         editor.typeText("- Review the product brief\n- Send the build notes to Maya\n- Book the 4:30 train")
+        app.buttons["character-progress"].tap()
+        let characterDetail = app.staticTexts["79 used · 161 remaining"]
+        XCTAssertTrue(characterDetail.waitForExistence(timeout: 2))
         capture("05-editing-light")
+        capture("11-character-count")
 
         app.buttons["done-editing"].tap()
         XCTAssertTrue(app.renderedNote.waitForExistence(timeout: 3))
+        XCTAssertFalse(app.buttons["character-progress"].exists)
         capture("03-note-light")
         capture("07-go-live-light")
-
-        app.buttons["character-progress"].tap()
-        capture("11-character-count")
-
-        let characterDetail = app.staticTexts["79 used · 161 remaining"]
-        let detailDidHide = XCTNSPredicateExpectation(
-            predicate: NSPredicate(format: "exists == false"),
-            object: characterDetail
-        )
-        XCTAssertEqual(
-            XCTWaiter.wait(for: [detailDidHide], timeout: 3),
-            .completed
-        )
 
         let live = app.buttons["toggle-pin"]
         live.tap()
@@ -76,6 +68,35 @@ final class WorkbenchVisualAuditUITests: XCTestCase {
         XCTAssertTrue(delete.waitForExistence(timeout: 3))
         XCTAssertTrue(delete.isHittable)
         capture("13-accessibility-xxxl")
+    }
+
+    func testCaptureLiquidGlassButtonSurfaces() {
+        let app = launchAuditApp(suite: "WorkbenchVisualAudit.liquid-glass")
+        selectAppearance("Light", in: app)
+
+        app.buttons["open-more-menu"].tap()
+        XCTAssertTrue(app.otherElements["more-menu"].waitForExistence(timeout: 3))
+        capture("15-more-menu-glass")
+
+        app.buttons["open-settings"].tap()
+        XCTAssertTrue(
+            app.descendants(matching: .any)["settings-content"]
+                .waitForExistence(timeout: 3)
+        )
+        capture("16-settings-buttons-glass")
+        app.buttons["close-sheet"].tap()
+
+        let editor = beginWorkbenchEditing(in: app)
+        editor.typeText("A note for the glass library button")
+        app.buttons["done-editing"].tap()
+        let move = app.buttons["archive-current-note"]
+        XCTAssertTrue(move.waitForExistence(timeout: 3))
+        move.tap()
+
+        app.buttons["open-more-menu"].tap()
+        app.buttons["open-note-library"].tap()
+        XCTAssertTrue(app.buttons["Replace current note"].waitForExistence(timeout: 3))
+        capture("17-note-library-buttons-glass")
     }
 
     private func launchAuditApp(

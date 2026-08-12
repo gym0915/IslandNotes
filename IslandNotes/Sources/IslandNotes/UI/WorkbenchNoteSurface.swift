@@ -31,15 +31,35 @@ struct WorkbenchNoteSurface: View {
                     renderedNote
                 }
 
-                CharacterProgressView(
-                    progress: progress,
-                    isExpanded: isCharacterCountExpanded,
-                    didReachLimit: didReachCharacterLimit,
-                    reveal: revealCharacterCount
-                )
-                .padding(.bottom, feedbackAvoidance)
+                if isEditing {
+                    CharacterProgressView(
+                        progress: progress,
+                        isExpanded: isCharacterCountExpanded,
+                        didReachLimit: didReachCharacterLimit,
+                        reveal: revealCharacterCount
+                    )
+                    .padding(.bottom, feedbackAvoidance)
+                } else {
+                    Color.clear
+                        .frame(
+                            width: IslandDesign.Sizing.minimumTouchTarget,
+                            height: IslandDesign.Sizing.minimumTouchTarget
+                        )
+                        .allowsHitTesting(false)
+                        .accessibilityHidden(true)
+                }
             }
             .padding(surfacePadding)
+        }
+        .overlay {
+            RoundedRectangle(
+                cornerRadius: IslandDesign.Radius.sheet,
+                style: .continuous
+            )
+            .strokeBorder(
+                IslandDesign.Colors.workbenchSurfaceBorder,
+                lineWidth: IslandDesign.Sizing.hairline
+            )
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .accessibilityElement(children: .contain)
@@ -53,13 +73,15 @@ struct WorkbenchNoteSurface: View {
     }
 
     private var progressTrailingSpace: CGFloat {
-        max(
+        guard isEditing else { return 0 }
+        return max(
             IslandDesign.Sizing.minimumTouchTarget,
             IslandDesign.Sizing.characterRing
         ) + IslandDesign.Spacing.x2
     }
 
     private var progressBottomSpace: CGFloat {
+        guard isEditing else { return 0 }
         let accessoryHeight = isCharacterCountExpanded && dynamicTypeSize.isAccessibilitySize
             ? IslandDesign.Sizing.expandedCharacterAccessoryHeight
             : progressTrailingSpace

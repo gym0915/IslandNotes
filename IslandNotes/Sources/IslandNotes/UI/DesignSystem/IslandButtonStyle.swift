@@ -38,6 +38,19 @@ enum IslandActionKind: CaseIterable, Equatable, Sendable {
         case .primary, .neutral, .destructive: .clear
         }
     }
+
+    var glassTint: Color? {
+        switch self {
+        case .neutral:
+            nil
+        case .primary:
+            IslandDesign.Colors.primaryText
+        case .live:
+            IslandDesign.Colors.workbenchLiveCore
+        case .destructive:
+            IslandDesign.Colors.destructive
+        }
+    }
 }
 
 struct IslandButtonStyle: ButtonStyle {
@@ -71,11 +84,13 @@ struct IslandButtonStyle: ButtonStyle {
                 minWidth: IslandDesign.Sizing.minimumTouchTarget,
                 minHeight: IslandDesign.Sizing.actionHeight
             )
-            .background(kind.background, in: Capsule())
-            .overlay {
-                Capsule()
-                    .stroke(kind.border, lineWidth: IslandDesign.Sizing.hairline)
-            }
+            .islandInteractiveGlass(
+                shape: .capsule,
+                tint: kind.glassTint,
+                fallbackFill: AnyShapeStyle(kind.background),
+                fallbackBorder: kind.border,
+                fallbackBorderWidth: IslandDesign.Sizing.hairline
+            )
             .contentShape(Capsule())
             .opacity(opacity(isPressed: configuration.isPressed))
             .scaleEffect(

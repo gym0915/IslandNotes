@@ -29,11 +29,13 @@ struct IslandIconButton: View {
                     width: IslandDesign.Sizing.minimumTouchTarget,
                     height: IslandDesign.Sizing.minimumTouchTarget
                 )
-                .background(background, in: Circle())
-                .overlay {
-                    Circle()
-                        .stroke(kind.border, lineWidth: IslandDesign.Sizing.hairline)
-                }
+                .islandInteractiveGlass(
+                    shape: .circle,
+                    tint: kind.glassTint,
+                    fallbackFill: background,
+                    fallbackBorder: kind.border,
+                    fallbackBorderWidth: IslandDesign.Sizing.hairline
+                )
                 .contentShape(Circle())
         }
         .buttonStyle(IslandIconPressStyle())

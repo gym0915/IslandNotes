@@ -11,21 +11,19 @@ struct SettingsView: View {
                 }
 
                 settingsGroup(title: "Support") {
-                    VStack(spacing: 0) {
+                    VStack(spacing: IslandDesign.Spacing.x2) {
                         SettingsRow(
                             title: "Feedback",
                             icon: .feedback,
                             identifier: "settings-feedback",
                             action: {}
                         )
-                        groupDivider
                         SettingsRow(
                             title: "Website",
                             icon: .website,
                             identifier: "settings-website",
                             action: {}
                         )
-                        groupDivider
                         SettingsRow(
                             title: "About",
                             icon: .about,
@@ -79,17 +77,15 @@ struct SettingsView: View {
             }
             .padding(.horizontal, IslandDesign.Spacing.x4)
             .frame(minHeight: IslandDesign.Sizing.actionHeight)
+            .islandInteractiveGlass(
+                shape: .roundedRectangle(IslandDesign.Radius.settingsItem),
+                fallbackFill: AnyShapeStyle(IslandDesign.Colors.surface)
+            )
             .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
         .accessibilityIdentifier("display-mode-menu")
         .accessibilityValue(appearance.mode.title)
-    }
-
-    private var groupDivider: some View {
-        Divider()
-            .overlay(IslandDesign.Colors.separator)
-            .padding(.leading, IslandDesign.Spacing.x4 * 3)
     }
 
     private func settingsGroup<Content: View>(
@@ -103,7 +99,7 @@ struct SettingsView: View {
                 .textCase(.uppercase)
                 .padding(.horizontal, IslandDesign.Spacing.x1)
 
-            IslandSurface(content: content)
+            content()
         }
     }
 }

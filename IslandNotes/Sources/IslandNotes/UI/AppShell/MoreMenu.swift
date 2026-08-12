@@ -5,49 +5,27 @@ struct MoreMenu: View {
     let openSettings: () -> Void
 
     var body: some View {
-        VStack(spacing: 0) {
-            menuButton(
-                title: "Note Library",
-                icon: .noteLibrary,
-                identifier: "open-note-library",
-                accessibilityValue: "Opens Note Library",
-                action: openNoteLibrary
-            )
+        IslandGlassEffectGroup(spacing: IslandDesign.Spacing.x2) {
+            VStack(spacing: IslandDesign.Spacing.x2) {
+                menuButton(
+                    title: "Note Library",
+                    icon: .noteLibrary,
+                    identifier: "open-note-library",
+                    accessibilityValue: "Opens Note Library",
+                    action: openNoteLibrary
+                )
 
-            Divider()
-                .overlay(IslandDesign.Colors.separator)
-                .padding(.horizontal, IslandDesign.Spacing.x4)
-
-            menuButton(
-                title: "Settings",
-                icon: .settings,
-                identifier: "open-settings",
-                accessibilityValue: "Opens Settings",
-                action: openSettings
-            )
+                menuButton(
+                    title: "Settings",
+                    icon: .settings,
+                    identifier: "open-settings",
+                    accessibilityValue: "Opens Settings",
+                    action: openSettings
+                )
+            }
         }
         .padding(.vertical, IslandDesign.Spacing.x2)
         .frame(width: IslandDesign.Sizing.menuWidth)
-        .background(IslandDesign.Materials.menu)
-        .clipShape(
-            RoundedRectangle(
-                cornerRadius: IslandDesign.Radius.compact,
-                style: .continuous
-            )
-        )
-        .overlay {
-            RoundedRectangle(
-                cornerRadius: IslandDesign.Radius.compact,
-                style: .continuous
-            )
-            .stroke(IslandDesign.Colors.menuBorder, lineWidth: IslandDesign.Sizing.hairline)
-        }
-        .shadow(
-            color: IslandDesign.Elevation.menu.color,
-            radius: IslandDesign.Elevation.menu.radius,
-            x: IslandDesign.Elevation.menu.x,
-            y: IslandDesign.Elevation.menu.y
-        )
         .accessibilityElement(children: .contain)
         .accessibilityIdentifier("more-menu")
     }
@@ -69,6 +47,12 @@ struct MoreMenu: View {
             .foregroundStyle(IslandDesign.Colors.primaryText)
             .padding(.horizontal, IslandDesign.Spacing.x4)
             .frame(minHeight: IslandDesign.Sizing.minimumTouchTarget)
+            .islandInteractiveGlass(
+                shape: .roundedRectangle(IslandDesign.Radius.compact),
+                fallbackFill: AnyShapeStyle(IslandDesign.Materials.menu),
+                fallbackBorder: IslandDesign.Colors.menuBorder,
+                fallbackBorderWidth: IslandDesign.Sizing.hairline
+            )
             .contentShape(Rectangle())
         }
         .buttonStyle(.plain)

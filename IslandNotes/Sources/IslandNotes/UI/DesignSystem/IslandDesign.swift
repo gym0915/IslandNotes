@@ -16,7 +16,11 @@ enum IslandDesign {
         }
 
         static var workbenchSurface: Color {
-            adaptive(light: 0xFDFDFD, dark: 0x121213)
+            adaptive(light: 0xF8F8F9, dark: 0x121213)
+        }
+
+        static var workbenchSurfaceBorder: Color {
+            adaptive(light: 0xFFFFFF, dark: 0x343436)
         }
 
         static var raisedSurface: Color {
@@ -71,10 +75,6 @@ enum IslandDesign {
             adaptive(light: 0x3F743A, dark: 0x3F743A)
         }
 
-        static var workbenchLiveHalo: Color {
-            adaptive(light: 0xDEE5DF, dark: 0x080E07)
-        }
-
         static var surfaceBorder: Color {
             separator.opacity(0.5)
         }
@@ -103,7 +103,7 @@ enum IslandDesign {
 
     enum Typography {
         static let productName = Font.system(.largeTitle, design: .default, weight: .bold)
-        static let workbenchTitle = Font.system(.title2, design: .default, weight: .bold)
+        static let workbenchTitle = Font.system(size: 20, weight: .bold)
         static let screenTitle = Font.system(.headline, design: .default, weight: .semibold)
         static let sheetTitle = screenTitle
         static let menuItem = Font.system(.body, design: .default, weight: .medium)
@@ -128,6 +128,7 @@ enum IslandDesign {
     }
 
     enum Radius {
+        static let settingsItem: CGFloat = 10
         static let compact: CGFloat = 14
         static let card: CGFloat = 22
         static let sheet: CGFloat = 34
@@ -155,28 +156,27 @@ enum IslandDesign {
 
     enum Sizing {
         static let minimumTouchTarget: CGFloat = 44
-        static let icon: CGFloat = 20
+        static let icon: CGFloat = 22
         static let smallIcon: CGFloat = 18
         static let largeIcon: CGFloat = 28
         static let menuWidth: CGFloat = 216
         static let menuTopOffset: CGFloat = 64
         static let statusDot: CGFloat = 7
-        static let characterRing: CGFloat = 48
+        static let characterRing: CGFloat = 32
         static let listBullet: CGFloat = 5
         static let actionHeight: CGFloat = 48
         static let hairline: CGFloat = 1
-        static let progressStroke: CGFloat = 8
+        static let progressStroke: CGFloat = 3
         static let dockIconTarget: CGFloat = 56
         static let dockActionHeight: CGFloat = 56
-        static let liveActionWidth: CGFloat = 156
-        static let compactLiveActionWidth: CGFloat = 128
+        static let liveActionWidth: CGFloat = 140
+        static let compactLiveActionWidth: CGFloat = 116
         static let accessibilityActionHeight: CGFloat = 72
-        static let liveIndicatorSlot: CGFloat = 18
-        static let liveReadyRing: CGFloat = 16
-        static let liveStatusDot: CGFloat = 16
-        static let liveStatusHalo: CGFloat = 24
+        static let liveIndicatorSlot: CGFloat = 16
+        static let liveReadyRing: CGFloat = 14
+        static let liveStatusDot: CGFloat = 14
         static let liveIndicatorStroke: CGFloat = 2
-        static let liveIndicatorLeadingPadding: CGFloat = 24
+        static let liveIndicatorLeadingPadding: CGFloat = 20
         static let headerActionTarget: CGFloat = 48
         static let increasedContrastStroke: CGFloat = 2
         static let increasedContrastIndicatorStroke: CGFloat = 3
@@ -187,8 +187,7 @@ enum IslandDesign {
         static let pressed = 0.72
         static let disabled = 0.42
         static let busy = 0.72
-        static let livePulseCore = 0.62
-        static let livePulseHalo = 0.7
+        static let livePulseCore = 0.18
     }
 
     enum Workbench {
@@ -211,7 +210,8 @@ enum IslandDesign {
         static let standard: Double = 0.18
         static let deliberate: Double = 0.21
         static let menuScale: CGFloat = 0.96
-        static let livePulseHalfCycle: Double = 1.2
+        static let livePulseTransitionDuration: Double = 1.15
+        static let livePulseEndpointHold: Double = 0.25
         static let pressedScale: CGFloat = 0.97
 
         static func animation(

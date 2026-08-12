@@ -106,18 +106,20 @@ struct WorkbenchActionDock: View {
     @Environment(\.dynamicTypeSize) private var dynamicTypeSize
 
     var body: some View {
-        ViewThatFits(in: .horizontal) {
-            dockRow(
-                spacing: preferredSpacing,
-                liveWidth: IslandDesign.Sizing.liveActionWidth
-            )
-            .padding(.horizontal, preferredHorizontalPadding)
+        IslandGlassEffectGroup(spacing: preferredSpacing) {
+            ViewThatFits(in: .horizontal) {
+                dockRow(
+                    spacing: preferredSpacing,
+                    liveWidth: IslandDesign.Sizing.liveActionWidth
+                )
+                .padding(.horizontal, preferredHorizontalPadding)
 
-            dockRow(
-                spacing: IslandDesign.Spacing.x2,
-                liveWidth: IslandDesign.Sizing.compactLiveActionWidth
-            )
-            .padding(.horizontal, IslandDesign.Spacing.x4)
+                dockRow(
+                    spacing: IslandDesign.Spacing.x2,
+                    liveWidth: IslandDesign.Sizing.compactLiveActionWidth
+                )
+                .padding(.horizontal, IslandDesign.Spacing.x4)
+            }
         }
         .padding(.bottom, preferredBottomPadding)
         .accessibilityElement(children: .contain)

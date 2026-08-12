@@ -33,11 +33,12 @@ final class LiveActivityPresentationTests: XCTestCase {
         let expectedBody = "Review the product brief\n• Send the build notes to Maya\n# Heading stays literal"
 
         for presentation in [expanded, lockScreen] {
-            XCTAssertEqual(presentation.brandMark, .notebookText)
             XCTAssertEqual(presentation.body, expectedBody)
             XCTAssertEqual(presentation.lineLimit, 3)
             XCTAssertEqual(presentation.accessibilityLabel, "Island Notes, \(expectedBody)")
         }
+        XCTAssertEqual(expanded.brandMark, .notebookText)
+        XCTAssertNil(lockScreen.brandMark)
     }
 
     func testEveryRegionUsesTheWorkbenchDeepLink() {

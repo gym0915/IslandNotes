@@ -28,9 +28,9 @@ enum LiveActivityPresentationModel {
         state: IslandNoteActivityAttributes.ContentState
     ) -> LiveActivityPresentation {
         let showsBrandMark = switch region {
-        case .compactLeading, .minimal, .expanded, .lockScreen:
+        case .compactLeading, .minimal, .expanded:
             true
-        case .compactTrailing:
+        case .compactTrailing, .lockScreen:
             false
         }
         let body: String? = switch region {

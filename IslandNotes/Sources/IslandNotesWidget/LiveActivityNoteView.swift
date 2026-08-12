@@ -21,6 +21,7 @@ struct LiveActivityBrandMarkView: View {
 struct LiveActivityNoteView: View {
     let presentation: LiveActivityPresentation
     let surface: LiveActivityNoteSurface
+    var foregroundColor: Color = .primary
 
     var body: some View {
         HStack(alignment: .top, spacing: LiveActivityDesign.contentSpacing) {
@@ -35,24 +36,9 @@ struct LiveActivityNoteView: View {
                 .multilineTextAlignment(.leading)
                 .frame(maxWidth: .infinity, alignment: .leading)
         }
-        .foregroundStyle(.primary)
+        .foregroundStyle(foregroundColor)
+        .frame(maxWidth: .infinity, alignment: .topLeading)
         .padding(surface == .lockScreen ? LiveActivityDesign.lockScreenPadding : 0)
-        .background {
-            if surface == .lockScreen {
-                RoundedRectangle(
-                    cornerRadius: LiveActivityDesign.lockScreenCornerRadius,
-                    style: .continuous
-                )
-                .fill(.ultraThinMaterial)
-                .overlay {
-                    RoundedRectangle(
-                        cornerRadius: LiveActivityDesign.lockScreenCornerRadius,
-                        style: .continuous
-                    )
-                    .stroke(.primary.opacity(0.14), lineWidth: 1)
-                }
-            }
-        }
         .accessibilityElement(children: .ignore)
         .accessibilityLabel(presentation.accessibilityLabel ?? "Island Notes")
     }
@@ -64,5 +50,50 @@ struct LiveActivityNoteView: View {
         case .lockScreen:
             LiveActivityDesign.lockScreenFont
         }
+    }
+}
+
+struct LiveActivityLockScreenView: View {
+    let presentation: LiveActivityPresentation
+
+    @Environment(\.colorScheme) private var colorScheme
+    @Environment(\.isLuminanceReduced) private var isLuminanceReduced
+
+    var body: some View {
+        LiveActivityNoteView(
+            presentation: presentation,
+            surface: .lockScreen,
+            foregroundColor: foregroundColor
+        )
+        .overlay {
+            RoundedRectangle(
+                cornerRadius: LiveActivityDesign.lockScreenCornerRadius,
+                style: .continuous
+            )
+            .stroke(
+                LiveActivityDesign.lockScreenBorderColor(
+                    usesDarkAppearance: usesDarkAppearance
+                ),
+                lineWidth: LiveActivityDesign.lockScreenBorderWidth
+            )
+        }
+        .activityBackgroundTint(backgroundColor)
+        .activitySystemActionForegroundColor(foregroundColor)
+    }
+
+    private var usesDarkAppearance: Bool {
+        colorScheme == .dark || isLuminanceReduced
+    }
+
+    private var foregroundColor: Color {
+        LiveActivityDesign.lockScreenForegroundColor(
+            usesDarkAppearance: usesDarkAppearance
+        )
+    }
+
+    private var backgroundColor: Color {
+        LiveActivityDesign.lockScreenBackgroundColor(
+            usesDarkAppearance: usesDarkAppearance
+        )
     }
 }

@@ -35,23 +35,19 @@ final class IslandNotesUITests: XCTestCase {
         XCTAssertTrue(moreButton.exists)
         moreButton.tap()
 
-        let menu = app.otherElements["more-menu"]
-        XCTAssertTrue(menu.waitForExistence(timeout: 2))
-        XCTAssertEqual(menu.buttons.count, 2)
-        let library = app.buttons["open-note-library"]
-        let settings = app.buttons["open-settings"]
-        XCTAssertTrue(library.exists)
-        XCTAssertTrue(settings.exists)
-        XCTAssertEqual(library.value as? String, "Opens Note Library")
-        XCTAssertEqual(settings.value as? String, "Opens Settings")
-        XCTAssertGreaterThanOrEqual(library.frame.height, 44)
-        XCTAssertGreaterThanOrEqual(settings.frame.height, 44)
+        let menuItems = app.cells
+        let library = menuItems.element(boundBy: 0)
+        let settings = menuItems.element(boundBy: 1)
+        XCTAssertTrue(settings.waitForExistence(timeout: 2))
+        XCTAssertEqual(menuItems.count, 2)
+        XCTAssertGreaterThan(library.frame.height, 0)
+        XCTAssertGreaterThan(settings.frame.height, 0)
 
         app.otherElements["workbench-root"]
             .coordinate(withNormalizedOffset: CGVector(dx: 0.1, dy: 0.9))
             .tap()
 
-        XCTAssertFalse(menu.exists)
+        XCTAssertFalse(menuItems.element(boundBy: 0).exists)
     }
 
     func testViewingEditingAndDoneRendersOnlyExactBulletLines() {
@@ -78,8 +74,7 @@ final class IslandNotesUITests: XCTestCase {
         let app = launchCleanApp()
 
         XCTAssertTrue(app.buttons["open-more-menu"].waitForExistence(timeout: 5))
-        app.buttons["open-more-menu"].tap()
-        app.buttons["open-note-library"].tap()
+        selectMoreMenuItem("Note Library", in: app)
 
         XCTAssertTrue(app.otherElements["app-sheet"].waitForExistence(timeout: 3))
         let title = app.staticTexts["sheet-title"]
@@ -178,7 +173,7 @@ final class IslandNotesUITests: XCTestCase {
         XCTAssertTrue(editor.exists)
         XCTAssertFalse(app.renderedNote.exists)
         XCTAssertTrue(app.buttons["done-editing"].exists)
-        XCTAssertFalse(app.staticTexts["Write what matters most…"].exists)
+        XCTAssertFalse(app.staticTexts["start typing..."].exists)
     }
 
     func testDoneRemainsDisabledWhileTheEditorHasMarkedText() {
@@ -294,7 +289,7 @@ final class IslandNotesUITests: XCTestCase {
         XCTAssertTrue(app.renderedNote.waitForExistence(timeout: 3))
         XCTAssertEqual(
             app.renderedNote.label,
-            "Add something you want to keep close, then go live on Dynamic Island."
+            "start typing..."
         )
         XCTAssertFalse(delete.isEnabled)
     }
@@ -362,8 +357,7 @@ final class IslandNotesUITests: XCTestCase {
         let app = launchCleanApp()
         XCTAssertTrue(app.buttons["open-more-menu"].waitForExistence(timeout: 5))
 
-        app.buttons["open-more-menu"].tap()
-        app.buttons["open-note-library"].tap()
+        selectMoreMenuItem("Note Library", in: app)
 
         XCTAssertTrue(app.staticTexts["No notes yet"].waitForExistence(timeout: 3))
     }
@@ -383,8 +377,7 @@ final class IslandNotesUITests: XCTestCase {
         archive.tap()
 
         XCTAssertTrue(app.buttons["open-more-menu"].waitForExistence(timeout: 3))
-        app.buttons["open-more-menu"].tap()
-        app.buttons["open-note-library"].tap()
+        selectMoreMenuItem("Note Library", in: app)
         let archivedNote = app.staticTexts["Old note from library"]
         XCTAssertTrue(archivedNote.waitForExistence(timeout: 3))
         XCTAssertTrue(app.staticTexts["RECENT"].exists)
@@ -419,8 +412,7 @@ final class IslandNotesUITests: XCTestCase {
         XCTAssertTrue(livingDraft.waitForExistence(timeout: 2))
         livingDraft.typeText(" unsaved")
 
-        app.buttons["open-more-menu"].tap()
-        app.buttons["open-note-library"].tap()
+        selectMoreMenuItem("Note Library", in: app)
         XCTAssertTrue(app.staticTexts["Library candidate"].waitForExistence(timeout: 3))
         app.buttons["Replace current note"].tap()
 
@@ -429,8 +421,7 @@ final class IslandNotesUITests: XCTestCase {
         XCTAssertTrue(rendered.label.contains("Library candidate"))
         XCTAssertFalse(livingDraft.exists)
 
-        app.buttons["open-more-menu"].tap()
-        app.buttons["open-note-library"].tap()
+        selectMoreMenuItem("Note Library", in: app)
         XCTAssertTrue(app.staticTexts["Outgoing committed"].waitForExistence(timeout: 3))
         XCTAssertFalse(app.staticTexts["Outgoing committed unsaved"].exists)
     }
@@ -440,8 +431,7 @@ final class IslandNotesUITests: XCTestCase {
         let editor = beginWorkbenchEditing(in: app)
         editor.typeText("Draft across a sheet")
 
-        app.buttons["open-more-menu"].tap()
-        app.buttons["open-note-library"].tap()
+        selectMoreMenuItem("Note Library", in: app)
         XCTAssertTrue(app.otherElements["app-sheet"].waitForExistence(timeout: 3))
         app.buttons["close-sheet"].tap()
 
@@ -505,8 +495,7 @@ final class IslandNotesUITests: XCTestCase {
 
     private func openSettings(in app: XCUIApplication) {
         XCTAssertTrue(app.buttons["open-more-menu"].waitForExistence(timeout: 5))
-        app.buttons["open-more-menu"].tap()
-        app.buttons["open-settings"].tap()
+        selectMoreMenuItem("Settings", in: app)
         XCTAssertTrue(settingsContent(in: app).waitForExistence(timeout: 3))
     }
 

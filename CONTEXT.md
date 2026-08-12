@@ -12,6 +12,10 @@ _Avoid_: IslandNotes（用户文案）、灵动岛便签
 承载唯一当前便签及其展示、编辑、入库、Live 和删除动作的主界面与产品工作位置。
 _Avoid_: Workspace、首页、编辑器页面
 
+**Workbench Action Dock**：
+Workbench 中把 Move to Note Library、Go Live / Live 和 Delete Note 组织为一个整体的复合操作控件。它表达对当前便签的动作，不负责在同级页面之间切换，因此不是 Tab Bar；各页面不得自行复制三套按钮样式与状态逻辑。
+_Avoid_: 底部 Tab、三个独立页面按钮、归档栏
+
 **当前便签**：
 当前承载在主界面唯一工作位置中的便签。
 _Avoid_: 活跃便签、打开的便签

@@ -42,9 +42,40 @@ final class WorkbenchLayoutContractUITests: XCTestCase {
         XCTAssertTrue(surface.waitForExistence(timeout: 5))
         XCTAssertEqual(
             renderedNote.label,
-            "Add something you want to keep close, then go live on Dynamic Island."
+            "start typing..."
         )
         XCTAssertGreaterThan(surface.frame.height, 310)
+    }
+
+    func testWorkbenchNoteSurfaceUsesThreeToFourAspectRatioAndCentersOnScreen() {
+        let app = launchCleanApp()
+        let surface = app.otherElements["workbench-note-surface"]
+
+        XCTAssertTrue(surface.waitForExistence(timeout: 5))
+        XCTAssertEqual(
+            surface.frame.width / surface.frame.height,
+            3.0 / 4.0,
+            accuracy: 0.01
+        )
+        XCTAssertEqual(surface.frame.midX, app.frame.midX, accuracy: 1)
+        XCTAssertEqual(surface.frame.midY, app.frame.midY, accuracy: 1)
+    }
+
+    func testEditingKeepsNoteSurfaceWidthAndCompressesOnlyItsHeightForKeyboard() {
+        let app = launchCleanApp()
+        let surface = app.otherElements["workbench-note-surface"]
+
+        XCTAssertTrue(surface.waitForExistence(timeout: 5))
+        let displayFrame = surface.frame
+        _ = beginWorkbenchEditing(in: app)
+
+        let keyboard = app.keyboards.firstMatch
+        XCTAssertTrue(keyboard.waitForExistence(timeout: 2))
+        let editingFrame = surface.frame
+
+        XCTAssertEqual(editingFrame.width, displayFrame.width, accuracy: 1)
+        XCTAssertLessThan(editingFrame.height, displayFrame.height)
+        XCTAssertLessThanOrEqual(editingFrame.maxY, keyboard.frame.minY)
     }
 
     func testNonEditingDockIsBottomAnchored() {

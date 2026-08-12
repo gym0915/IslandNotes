@@ -12,7 +12,6 @@ struct WorkbenchView: View {
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     @Bindable var feature: IslandNotesFeature
-    @State private var isMoreMenuPresented = false
     @State private var liveTransition: LiveActionTransition?
     @State private var editorComposition = WorkbenchEditorCompositionState(
         hasMarkedText: initialUITestingMarkedTextActive
@@ -57,8 +56,8 @@ struct WorkbenchView: View {
             ZStack {
                 WorkbenchScaffold(isEditing: feature.isEditing) {
                     WorkbenchHeader(
-                        isMoreMenuPresented: isMoreMenuPresented,
-                        toggleMoreMenu: toggleMoreMenu
+                        openNoteLibrary: openNoteLibrary,
+                        openSettings: openSettings
                     )
                 } noteSurface: {
                     WorkbenchNoteSurface(
@@ -80,31 +79,6 @@ struct WorkbenchView: View {
                         },
                         revealCharacterCount: feature.revealCharacterCount
                     )
-                }
-
-                if isMoreMenuPresented {
-                    Color.clear
-                        .contentShape(Rectangle())
-                        .ignoresSafeArea()
-                        .onTapGesture(perform: dismissMoreMenu)
-                        .accessibilityHidden(true)
-
-                    MoreMenu(
-                        openNoteLibrary: openNoteLibraryFromMenu,
-                        openSettings: openSettingsFromMenu
-                    )
-                    .padding(.top, IslandDesign.Sizing.menuTopOffset)
-                    .padding(.trailing, IslandDesign.Spacing.x6)
-                    .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topTrailing)
-                    .transition(
-                        .opacity.combined(
-                            with: .scale(
-                                scale: IslandDesign.Motion.menuScale,
-                                anchor: .topTrailing
-                            )
-                        )
-                    )
-                    .zIndex(1)
                 }
 
                 if let feedback = feature.feedbackMessage,
@@ -162,12 +136,14 @@ struct WorkbenchView: View {
             }
         }
         .animation(
-            IslandDesign.Motion.menu(reduceMotion: reduceMotionOverride ?? reduceMotion),
-            value: isMoreMenuPresented
-        )
-        .animation(
             IslandDesign.Motion.animation(reduceMotion: reduceMotionOverride ?? reduceMotion),
             value: feature.deleteConfirmation != nil
+        )
+        .animation(
+            IslandDesign.Motion.workbenchEditing(
+                reduceMotion: reduceMotionOverride ?? reduceMotion
+            ),
+            value: feature.isEditing
         )
         .background(IslandDesign.Colors.workbenchCanvas.ignoresSafeArea())
         .navigationBarHidden(true)
@@ -210,23 +186,6 @@ struct WorkbenchView: View {
         Task { try? await feature.confirmDeleteCurrentNote() }
     }
 
-    private func toggleMoreMenu() {
-        isMoreMenuPresented.toggle()
-    }
-
-    private func dismissMoreMenu() {
-        isMoreMenuPresented = false
-    }
-
-    private func openNoteLibraryFromMenu() {
-        dismissMoreMenu()
-        openNoteLibrary()
-    }
-
-    private func openSettingsFromMenu() {
-        dismissMoreMenu()
-        openSettings()
-    }
 }
 
 struct WorkbenchEditorCompositionState: Equatable {

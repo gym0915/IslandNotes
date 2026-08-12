@@ -48,39 +48,46 @@ private struct WorkbenchScaffoldLayout: Layout {
 
         let widthProposal = ProposedViewSize(width: bounds.width, height: nil)
         let headerSize = subviews[0].sizeThatFits(widthProposal)
-        var headerGap = isEditing
+        let headerGap = isEditing
             ? IslandDesign.Workbench.editingHeaderGap
             : IslandDesign.Workbench.headerGap
-        var bottomGap = isEditing
+        let bottomGap = isEditing
             ? IslandDesign.Workbench.editingBottomGap
             : IslandDesign.Workbench.bottomGap
-        let minimumHeaderGap = isEditing
-            ? IslandDesign.Workbench.minimumEditingHeaderGap
-            : IslandDesign.Workbench.minimumHeaderGap
-        let minimumBottomGap = IslandDesign.Workbench.minimumBottomGap
-        let minimumSurfaceHeight = isEditing
-            ? IslandDesign.Workbench.minimumEditingSurfaceHeight
-            : IslandDesign.Workbench.minimumSurfaceHeight
-
-        let desiredMinimumHeight = headerSize.height
-            + headerGap
-            + minimumSurfaceHeight
-            + bottomGap
-        var deficit = max(0, desiredMinimumHeight - bounds.height)
-        deficit = compress(
-            &headerGap,
-            toward: minimumHeaderGap,
-            by: deficit
-        )
-        _ = compress(
-            &bottomGap,
-            toward: minimumBottomGap,
-            by: deficit
-        )
-
-        let surfaceHeight = max(
+        let availableSurfaceHeight = max(
             0,
             bounds.height - headerSize.height - headerGap - bottomGap
+        )
+        let screenCenterAdjustment = IslandDesign.Workbench.noteSurfaceCenterYOffset
+        let preferredSurfaceHeight = bounds.width
+            / IslandDesign.Workbench.noteSurfaceAspectRatio
+        let surfaceWidth: CGFloat
+        let surfaceHeight: CGFloat
+        if isEditing {
+            // Keep the editing surface at the Workbench content width. The
+            // keyboard is allowed to reduce only its vertical extent.
+            surfaceWidth = bounds.width
+            surfaceHeight = min(preferredSurfaceHeight, availableSurfaceHeight)
+        } else {
+            // Display state remains a strict 3:4 surface, adapting its width
+            // only when a smaller device cannot fit the full-height version.
+            surfaceWidth = min(
+                bounds.width,
+                availableSurfaceHeight * IslandDesign.Workbench.noteSurfaceAspectRatio
+            )
+            surfaceHeight = surfaceWidth / IslandDesign.Workbench.noteSurfaceAspectRatio
+        }
+        let surfaceMinY = bounds.minY
+            + headerSize.height
+            + headerGap
+            + screenCenterAdjustment
+        let surfaceMaxY = bounds.maxY - bottomGap - surfaceHeight
+        let centeredSurfaceMinY = bounds.midY
+            - (surfaceHeight / 2)
+            + screenCenterAdjustment
+        let clampedSurfaceMinY = min(
+            max(centeredSurfaceMinY, surfaceMinY),
+            surfaceMaxY
         )
 
         subviews[0].place(
@@ -93,24 +100,14 @@ private struct WorkbenchScaffoldLayout: Layout {
         )
         subviews[1].place(
             at: CGPoint(
-                x: bounds.minX,
-                y: bounds.minY + headerSize.height + headerGap
+                x: bounds.midX,
+                y: clampedSurfaceMinY + (surfaceHeight / 2)
             ),
-            anchor: .topLeading,
+            anchor: .center,
             proposal: ProposedViewSize(
-                width: bounds.width,
+                width: surfaceWidth,
                 height: surfaceHeight
             )
         )
-    }
-
-    private func compress(
-        _ value: inout CGFloat,
-        toward minimum: CGFloat,
-        by deficit: CGFloat
-    ) -> CGFloat {
-        let reduction = min(deficit, max(0, value - minimum))
-        value -= reduction
-        return deficit - reduction
     }
 }

@@ -44,7 +44,7 @@ enum IslandDesign {
         }
 
         static var placeholder: Color {
-            secondaryText.opacity(0.55)
+            secondaryText.opacity(0.45)
         }
 
         static var progressTrack: Color {
@@ -160,7 +160,9 @@ enum IslandDesign {
         static let smallIcon: CGFloat = 18
         static let largeIcon: CGFloat = 28
         static let menuWidth: CGFloat = 216
-        static let menuTopOffset: CGFloat = 64
+        // The menu starts below the 48pt header action target with an 8pt
+        // visual gap, matching the workbench screenshot.
+        static let menuTopOffset: CGFloat = 72
         static let statusDot: CGFloat = 7
         static let characterRing: CGFloat = 32
         static let listBullet: CGFloat = 5
@@ -191,15 +193,12 @@ enum IslandDesign {
     }
 
     enum Workbench {
+        static let noteSurfaceAspectRatio: CGFloat = 3.0 / 4.0
+        static let noteSurfaceCenterYOffset: CGFloat = 3
         static let headerGap: CGFloat = 72
-        static let minimumHeaderGap: CGFloat = 24
         static let editingHeaderGap: CGFloat = 24
-        static let minimumEditingHeaderGap: CGFloat = 16
         static let bottomGap: CGFloat = 32
         static let editingBottomGap: CGFloat = 16
-        static let minimumBottomGap: CGFloat = 16
-        static let minimumSurfaceHeight: CGFloat = 240
-        static let minimumEditingSurfaceHeight: CGFloat = 160
         static let feedbackAvoidance: CGFloat = 72
         static let accessibilityFeedbackAvoidance: CGFloat = 104
         static let dockOuterControlInset: CGFloat = 16
@@ -213,6 +212,8 @@ enum IslandDesign {
         static let livePulseTransitionDuration: Double = 1.15
         static let livePulseEndpointHold: Double = 0.25
         static let pressedScale: CGFloat = 0.97
+        static let workbenchEditingResponse: Double = 0.42
+        static let workbenchEditingDamping: Double = 0.92
 
         static func animation(
             duration: Double = standard,
@@ -223,6 +224,15 @@ enum IslandDesign {
 
         static func menu(reduceMotion: Bool) -> Animation? {
             animation(reduceMotion: reduceMotion)
+        }
+
+        static func workbenchEditing(reduceMotion: Bool) -> Animation? {
+            guard !reduceMotion else { return nil }
+            return .spring(
+                response: workbenchEditingResponse,
+                dampingFraction: workbenchEditingDamping,
+                blendDuration: 0.08
+            )
         }
 
         static func interactiveScale(isPressed: Bool, reduceMotion: Bool) -> CGFloat {

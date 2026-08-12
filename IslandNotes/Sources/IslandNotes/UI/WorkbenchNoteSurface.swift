@@ -17,6 +17,7 @@ struct WorkbenchNoteSurface: View {
     let revealCharacterCount: () -> Void
 
     @Environment(\.dynamicTypeSize) private var dynamicTypeSize
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     var body: some View {
         IslandSurface(
@@ -27,8 +28,10 @@ struct WorkbenchNoteSurface: View {
             ZStack(alignment: .bottomTrailing) {
                 if isEditing {
                     editor
+                        .transition(contentTransition)
                 } else {
                     renderedNote
+                        .transition(contentTransition)
                 }
 
                 if isEditing {
@@ -64,6 +67,13 @@ struct WorkbenchNoteSurface: View {
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .accessibilityElement(children: .contain)
         .accessibilityIdentifier("workbench-note-surface")
+    }
+
+    private var contentTransition: AnyTransition {
+        guard !reduceMotion else { return .opacity }
+        return .opacity.combined(
+            with: .scale(scale: 0.985, anchor: .center)
+        )
     }
 
     private var surfacePadding: CGFloat {
@@ -107,7 +117,7 @@ struct WorkbenchNoteSurface: View {
     private var editor: some View {
         ZStack(alignment: .topLeading) {
             if editingText.isEmpty {
-                Text("Write what matters most…")
+                Text(NoteCopy.startTypingMessage)
                     .font(IslandDesign.Typography.editor)
                     .foregroundStyle(IslandDesign.Colors.placeholder)
                     .padding(.top, IslandDesign.Spacing.x1)
@@ -151,7 +161,7 @@ struct WorkbenchNoteSurface: View {
 
     private var renderedNoteAccessibilityLabel: String {
         source.isEmpty
-            ? "Add something you want to keep close, then go live on Dynamic Island."
+            ? NoteCopy.startTypingMessage
             : source
     }
 

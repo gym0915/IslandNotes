@@ -1,8 +1,8 @@
 import SwiftUI
 
 struct WorkbenchHeader: View {
-    let isMoreMenuPresented: Bool
-    let toggleMoreMenu: () -> Void
+    let openNoteLibrary: () -> Void
+    let openSettings: () -> Void
 
     var body: some View {
         ViewThatFits(in: .horizontal) {
@@ -39,25 +39,26 @@ struct WorkbenchHeader: View {
     }
 
     private var moreButton: some View {
-        IslandIconButton(icon: .more, label: "More", action: toggleMoreMenu)
+        MoreMenu(
+            openNoteLibrary: openNoteLibrary,
+            openSettings: openSettings
+        )
             .frame(
                 width: IslandDesign.Sizing.headerActionTarget,
                 height: IslandDesign.Sizing.headerActionTarget
             )
-            .accessibilityIdentifier("open-more-menu")
-            .accessibilityValue(isMoreMenuPresented ? "Expanded" : "Collapsed")
     }
 }
 
 #Preview("Workbench Header · Light") {
-    WorkbenchHeader(isMoreMenuPresented: false, toggleMoreMenu: {})
+    WorkbenchHeader(openNoteLibrary: {}, openSettings: {})
         .padding(IslandDesign.Spacing.x6)
         .background(IslandDesign.Colors.workbenchCanvas)
         .preferredColorScheme(.light)
 }
 
 #Preview("Workbench Header · Dark") {
-    WorkbenchHeader(isMoreMenuPresented: false, toggleMoreMenu: {})
+    WorkbenchHeader(openNoteLibrary: {}, openSettings: {})
         .padding(IslandDesign.Spacing.x6)
         .background(IslandDesign.Colors.workbenchCanvas)
         .preferredColorScheme(.dark)

@@ -5,9 +5,9 @@ struct RenderedNoteView: View {
 
     var body: some View {
         if source.isEmpty {
-            Text("Add something you want to keep close, then go live on Dynamic Island.")
+            Text(NoteCopy.startTypingMessage)
                 .font(IslandDesign.Typography.noteBody)
-                .foregroundStyle(IslandDesign.Colors.secondaryText)
+                .foregroundStyle(IslandDesign.Colors.placeholder)
         } else {
             VStack(alignment: .leading, spacing: IslandDesign.Spacing.x2) {
                 ForEach(Array(RenderedNoteContent.lines(from: source).enumerated()), id: \.offset) {

@@ -75,10 +75,10 @@ final class WorkbenchVisualAuditUITests: XCTestCase {
         selectAppearance("Light", in: app)
 
         app.buttons["open-more-menu"].tap()
-        XCTAssertTrue(app.otherElements["more-menu"].waitForExistence(timeout: 3))
+        XCTAssertTrue(app.cells.element(boundBy: 1).waitForExistence(timeout: 3))
         capture("15-more-menu-glass")
 
-        app.buttons["open-settings"].tap()
+        app.cells.element(boundBy: 1).tap()
         XCTAssertTrue(
             app.descendants(matching: .any)["settings-content"]
                 .waitForExistence(timeout: 3)
@@ -93,8 +93,7 @@ final class WorkbenchVisualAuditUITests: XCTestCase {
         XCTAssertTrue(move.waitForExistence(timeout: 3))
         move.tap()
 
-        app.buttons["open-more-menu"].tap()
-        app.buttons["open-note-library"].tap()
+        selectMoreMenuItem("Note Library", in: app)
         XCTAssertTrue(app.buttons["Replace current note"].waitForExistence(timeout: 3))
         capture("17-note-library-buttons-glass")
     }
@@ -123,8 +122,7 @@ final class WorkbenchVisualAuditUITests: XCTestCase {
     }
 
     private func selectAppearance(_ title: String, in app: XCUIApplication) {
-        app.buttons["open-more-menu"].tap()
-        app.buttons["open-settings"].tap()
+        selectMoreMenuItem("Settings", in: app)
         XCTAssertTrue(
             app.descendants(matching: .any)["settings-content"]
                 .waitForExistence(timeout: 3)
